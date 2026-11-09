@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SoundLibert.UI.Views.PromptWindow"
+        Width="420" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        WindowDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Title="SoundLibert"
+        Icon="/Assets/app.ico">
+
+    <Border x:Name="Card" Classes="dialog" Margin="14" Padding="24,22"
+            Opacity="0" RenderTransform="scale(0.96)" RenderTransformOrigin="50%,50%">
+        <Border.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.16"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.24" Easing="0.2,0,0,1"/>
+            </Transitions>
+        </Border.Transitions>
+        <StackPanel Spacing="14">
+            <TextBlock x:Name="TitleText" FontSize="17" FontWeight="SemiBold"
+                       TextTrimming="CharacterEllipsis"/>
+            <TextBlock x:Name="MessageText" FontSize="13" TextWrapping="Wrap" IsVisible="False"
+                       Foreground="{DynamicResource TextDimBrush}"/>
+            <TextBox x:Name="Input" MaxLength="120" KeyDown="Input_KeyDown"/>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,4,0,0">
+                <Button x:Name="CancelButton" Content="Cancel" Classes="ghost" Click="Cancel_Click"/>
+                <Button x:Name="OkButton" Content="Create" Classes="primary" Click="Ok_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

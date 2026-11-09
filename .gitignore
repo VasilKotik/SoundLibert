@@ -1,0 +1,33 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# .NET / test artifacts
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Local data & logs (written to %LocalAppData%\SoundLibert at runtime).
+# Never commit these: session cookies, library, history, stream URLs.
+*.log
+*.db
+*.db-journal
+*.db-wal
+account.dat
+settings.json
+
+# OS junk
+Thumbs.db
+desktop.ini
+
+# Publish output
+publish/
+dist/

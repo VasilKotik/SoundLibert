@@ -1,0 +1,255 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoundLibert.UI.ViewModels"
+             xmlns:models="using:SoundLibert.Domain.Models"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             x:Class="SoundLibert.UI.Views.LibraryView"
+             x:DataType="vm:LibraryViewModel">
+
+    <Grid>
+
+        <!-- =============== The Library: collections, then playlists =============== -->
+        <ScrollViewer x:Name="LibraryRoot" HorizontalScrollBarVisibility="Disabled"
+                      IsVisible="{Binding !IsCollectionOpen}">
+            <StackPanel Margin="32,30,32,40" Spacing="32">
+
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <TextBlock Classes="display" Text="Library"/>
+                        <TextBlock Text="{Binding AccountNote}" FontSize="12.5"
+                                   Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap"
+                                   IsVisible="{Binding AccountNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="icon" VerticalAlignment="Center"
+                            ToolTip.Tip="Sync with YouTube Music"
+                            Command="{Binding ReloadCommand}">
+                        <controls:Icon Kind="Refresh" Size="19"/>
+                    </Button>
+                    <Button Grid.Column="2" Classes="ghost" VerticalAlignment="Center"
+                            Click="CreatePlaylist_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <controls:Icon Kind="Plus" Size="17" VerticalAlignment="Center"/>
+                            <TextBlock Text="New playlist" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Collections}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:AdaptiveGrid MinItemWidth="220" ColumnGap="12" RowGap="12"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LibraryCard">
+                            <Border Classes="tile" Tag="{Binding}" Tapped="LibraryCard_Tapped"
+                                    controls:Motion.RevealOnLoad="True">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="12,0">
+                                    <Border Width="40" Height="40" CornerRadius="10"
+                                            Background="{DynamicResource FillHoverBrush}" VerticalAlignment="Center">
+                                        <controls:Icon Classes="tileGlyph" Kind="{Binding Icon}" Size="20"
+                                                       Foreground="{DynamicResource TextBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Classes="cardTitle" Text="{Binding Title}"/>
+                                        <TextBlock Classes="cardSub" Text="{Binding Subtitle}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel Spacing="14">
+                    <TextBlock Classes="section-title" Text="Playlists"/>
+                    <ItemsControl ItemsSource="{Binding PlaylistCards}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <controls:AdaptiveGrid MinItemWidth="160"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LibraryCard">
+                                <controls:CoverCard Title="{Binding Title}" Subtitle="{Binding Subtitle}"
+                                                    ImageUrl="{Binding CoverUrl}" ImageUrls="{Binding CoverUrls}"
+                                                    CanManage="{Binding CanManage}"
+                                                    Tapped="LibraryCard_Tapped"
+                                                    MoreClick="LibraryCardMore_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="No playlists yet. Create one, or add a song from its menu."
+                               FontSize="13.5" Foreground="{DynamicResource TextDimBrush}"
+                               IsVisible="{Binding !HasPlaylists}"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- =============== A collection or playlist opened in place =============== -->
+        <Grid x:Name="DrillIn" IsVisible="{Binding IsCollectionOpen}">
+            <Grid.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.24"/>
+                </Transitions>
+            </Grid.Transitions>
+
+            <!-- The lists run the full height; the header floats above and scrolls
+                 away with them (Controls/ScrollHeader). -->
+            <ListBox x:Name="TracksList" Classes="plain"
+                     IsVisible="{Binding ShowTracksList}"
+                     ItemsSource="{Binding CollectionTracks}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:SongItem">
+                        <controls:SongRow Margin="24,0" Tag="{Binding}" Tapped="LibraryTrack_Tapped"
+                                          LikeClick="LikeTrack_Click" MoreClick="More_Click"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Followed artists -->
+            <ScrollViewer x:Name="ArtistsScroll" IsVisible="{Binding IsArtistsSection}"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding DrillArtists}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:AdaptiveGrid MinItemWidth="140" Margin="32,0"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:ArtistItem">
+                            <controls:CoverCard Shape="Round" Title="{Binding Name}"
+                                                ImageUrl="{Binding ThumbnailUrl}" Tapped="DrillArtist_Tapped"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Saved albums -->
+            <ScrollViewer x:Name="AlbumsScroll" IsVisible="{Binding IsAlbumsSection}"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding DrillAlbums}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:AdaptiveGrid MinItemWidth="160" Margin="32,0"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:AlbumItem">
+                            <controls:CoverCard Title="{Binding Title}" Subtitle="{Binding ArtistDisplay}"
+                                                ImageUrl="{Binding ThumbnailUrl}" Tapped="DrillAlbum_Tapped"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Header -->
+            <StackPanel x:Name="DrillHeader" VerticalAlignment="Top" Spacing="14">
+                <controls:PageHero Eyebrow="{Binding OpenCardKindLabel}"
+                                   Title="{Binding CollectionTitle}"
+                                   Meta="{Binding CollectionSubtitle}"
+                                   ImageUrl="{Binding OpenedCard.CoverUrl, FallbackValue={x:Null}}"
+                                   ImageUrls="{Binding OpenedCard.CoverUrls, FallbackValue={x:Null}}"
+                                   Glyph="{Binding OpenedCard.Icon, FallbackValue=Music}">
+                    <controls:PageHero.Actions>
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsTracksSection}">
+                            <Button Classes="play" Command="{Binding PlayCollectionCommand}"
+                                    IsVisible="{Binding CollectionHasTracks}" ToolTip.Tip="Play all">
+                                <controls:Icon Kind="Play" Size="22"/>
+                            </Button>
+                            <Button Classes="icon lg" Command="{Binding ShuffleCollectionCommand}"
+                                    IsVisible="{Binding CollectionHasTracks}" ToolTip.Tip="Shuffle">
+                                <controls:Icon Kind="Shuffle" Size="21"/>
+                            </Button>
+                            <Button Classes="icon lg" ToolTip.Tip="More">
+                                <controls:Icon Kind="More" Size="22"/>
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuItem Header="Download all"
+                                                  Command="{Binding DownloadCollectionCommand}"
+                                                  IsVisible="{Binding CollectionHasTracks}">
+                                            <MenuItem.Icon><controls:Icon Kind="Download" Size="16"/></MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Import folder…"
+                                                  Click="ImportLocal_Click"
+                                                  IsVisible="{Binding IsLocalSection}">
+                                            <MenuItem.Icon><controls:Icon Kind="Folder" Size="16"/></MenuItem.Icon>
+                                        </MenuItem>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
+                    </controls:PageHero.Actions>
+                </controls:PageHero>
+
+                <!-- Find within the collection; past a few hundred rows this matters. -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="32,0,32,4">
+                    <Border Classes="searchField" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <controls:Icon Kind="Search" Size="15" Margin="0,0,9,0"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Classes="bare" Text="{Binding CollectionFilter}"
+                                     PlaceholderText="Find in this list"/>
+                        </Grid>
+                    </Border>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding SortOptions}"
+                              SelectedIndex="{Binding CollectionSortIndex}"
+                              MinWidth="150" ToolTip.Tip="Sort"/>
+                </Grid>
+
+                <!-- Genre mix: only the genres this collection really has. -->
+                <controls:Rail IsVisible="{Binding HasGenreChips}" Margin="32,0">
+                    <ItemsControl ItemsSource="{Binding Genres}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="6"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GenreChip">
+                                <Button Classes="chip" Classes.active="{Binding IsActive}"
+                                        Content="{Binding Label}" Tag="{Binding}"
+                                        Click="GenreChip_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </controls:Rail>
+
+                <TextBlock Text="{Binding LocalStatus}" FontSize="12.5" Margin="32,0"
+                           Foreground="{DynamicResource TextDimBrush}" TextWrapping="Wrap"
+                           IsVisible="{Binding LocalStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                <StackPanel Classes="emptyState" IsVisible="{Binding ShowDrillEmpty}">
+                    <Border Classes="emptyBadge">
+                        <controls:Icon Kind="{Binding OpenedCard.Icon, FallbackValue=Music}" Size="30"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Classes="emptyText" Text="{Binding CollectionEmptyMessage}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Once the header has scrolled away: the name and Play stay at hand. -->
+            <Border x:Name="DrillCompact" VerticalAlignment="Top" Height="60" Padding="32,0"
+                    Background="#F20D0E13" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,0,0,1"
+                    Opacity="0" IsHitTestVisible="False">
+                <Border.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+                    </Transitions>
+                </Border.Transitions>
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                    <Button Classes="play sm" Command="{Binding PlayCollectionCommand}"
+                            IsVisible="{Binding IsTracksSection}" ToolTip.Tip="Play all"
+                            VerticalAlignment="Center">
+                        <controls:Icon Kind="Play" Size="18"/>
+                    </Button>
+                    <TextBlock Grid.Column="1" Text="{Binding CollectionTitle}" FontSize="16" FontWeight="SemiBold"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

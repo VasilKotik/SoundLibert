@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoundLibert.UI.ViewModels"
+             xmlns:views="using:SoundLibert.UI.Views"
+             xmlns:models="using:SoundLibert.Domain.Models"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             x:Class="SoundLibert.UI.Views.ArtistView"
+             x:DataType="vm:ArtistViewModel">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,0,40" Spacing="34">
+
+            <controls:PageHero Eyebrow="ARTIST" IsRound="True" Glyph="User"
+                               Title="{Binding Title}"
+                               Subtitle="{Binding AudienceText}"
+                               Meta="{Binding ViewsText}"
+                               ImageUrl="{Binding ThumbnailUrl}">
+                <controls:PageHero.Actions>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="play" Command="{Binding PlayAllCommand}"
+                                IsVisible="{Binding HasSongs}" ToolTip.Tip="Play">
+                            <controls:Icon Kind="Play" Size="22"/>
+                        </Button>
+                        <Button Classes="icon lg" Command="{Binding ShufflePlayCommand}"
+                                IsVisible="{Binding HasSongs}" ToolTip.Tip="Shuffle">
+                            <controls:Icon Kind="Shuffle" Size="21"/>
+                        </Button>
+                        <Button Classes="icon lg" Command="{Binding StartRadioCommand}"
+                                IsVisible="{Binding HasSongs}" ToolTip.Tip="Start radio">
+                            <controls:Icon Kind="Radio" Size="21"/>
+                        </Button>
+                        <Button Classes="ghost" Content="{Binding SubscribeButtonText}" Margin="4,0,0,0"
+                                Click="Subscribe_Click" VerticalAlignment="Center"
+                                IsVisible="{Binding CanSubscribe}"/>
+                    </StackPanel>
+                </controls:PageHero.Actions>
+            </controls:PageHero>
+
+            <controls:SkeletonPlaceholder Kind="Rows" Count="5" Margin="32,0" IsVisible="{Binding IsLoading}"/>
+
+            <!-- Top songs, with the newest release beside them. -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="30" Margin="32,0">
+                <StackPanel Spacing="8" IsVisible="{Binding HasSongs}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section-title" Text="Top songs" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="quiet" Content="Show all" Margin="0,0,-6,0"
+                                IsVisible="{Binding HasTopSongsList}" Click="ShowAllTopSongs_Click"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Songs}" Margin="-8,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:SongItem">
+                                <controls:SongRow Reveal="True" ShowAlbum="True" Tapped="Song_Tapped"
+                                                  LikeClick="Like_Click" MoreClick="More_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Width="236" Spacing="12" IsVisible="{Binding HasLatestRelease}">
+                    <TextBlock Classes="section-title" Text="Latest release"/>
+                    <ContentControl Content="{Binding LatestRelease}">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate x:DataType="vm:ShelfCard">
+                                <controls:CoverCard Title="{Binding Title}" Subtitle="{Binding Subtitle}"
+                                                    ImageUrl="{Binding ThumbnailUrl}"
+                                                    Tapped="Latest_Tapped" PlayClick="LatestPlay_Click"/>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+                </StackPanel>
+            </Grid>
+
+            <!-- Albums, singles, videos, live, features, playlists, who else fans like. -->
+            <views:ShelfStack Shelves="{Binding Shelves}" Margin="32,0"/>
+
+            <!-- About -->
+            <StackPanel Spacing="10" Margin="32,0"
+                        IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Classes="section-title" Text="About"/>
+                <TextBlock Text="{Binding AudienceText}" FontSize="13" FontWeight="Medium"
+                           Foreground="{DynamicResource TextMidBrush}"
+                           IsVisible="{Binding AudienceText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <TextBlock Text="{Binding Description}" FontSize="14" LineHeight="23"
+                           Foreground="{DynamicResource TextDimBrush}" MaxWidth="820"
+                           HorizontalAlignment="Left" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <TextBlock Text="{Binding EmptyMessage}" FontSize="13.5" Margin="32,0"
+                       Foreground="{DynamicResource TextDimBrush}"
+                       IsVisible="{Binding !HasSongs}"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

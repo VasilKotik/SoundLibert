@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>0.2.0</Version>
+    <Product>SoundLibert</Product>
+    <Company>SoundLibert</Company>
+    <Copyright>© 2026 SoundLibert contributors · GPL-3.0</Copyright>
+    <!-- The app ships x64 only: the x86 and ARM64 LibVLC copies were ~195 MB
+         of dead weight in every build and installer. -->
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
+  </PropertyGroup>
+
+  <!-- LibVLC plugin groups that only serve streaming OUT / visualisers /
+       network discovery; playback (http access, demux, decode, vmem) never
+       loads them. -->
+  <ItemGroup>
+    <VlcWindowsX64ExcludeFiles Include="plugins\access_output\%2A" />
+    <VlcWindowsX64ExcludeFiles Include="plugins\stream_out\%2A" />
+    <VlcWindowsX64ExcludeFiles Include="plugins\mux\%2A" />
+    <VlcWindowsX64ExcludeFiles Include="plugins\visualization\%2A" />
+    <VlcWindowsX64ExcludeFiles Include="plugins\video_splitter\%2A" />
+    <VlcWindowsX64ExcludeFiles Include="plugins\services_discovery\%2A" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <!-- GPL-3.0 §4: every copy ships with the license; CREDITS.md carries the
+       third-party notices (LibVLC is LGPL-2.1, the rest MIT/BSD). -->
+  <ItemGroup>
+    <None Include="..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\CREDITS.md" Link="CREDITS.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Controls.WebView" Version="12.0.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="LibVLCSharp.Avalonia" Version="3.10.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SoundLibert.App\SoundLibert.App.csproj" />
+    <ProjectReference Include="..\SoundLibert.Audio\SoundLibert.Audio.csproj" />
+    <ProjectReference Include="..\SoundLibert.Domain\SoundLibert.Domain.csproj" />
+  </ItemGroup>
+</Project>

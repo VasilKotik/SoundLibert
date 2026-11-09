@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="SoundLibert.App/SoundLibert.App.csproj" />
+  <Project Path="SoundLibert.Audio/SoundLibert.Audio.csproj" />
+  <Project Path="SoundLibert.Domain/SoundLibert.Domain.csproj" />
+  <Project Path="SoundLibert.Domain.Tests/SoundLibert.Domain.Tests.csproj" />
+  <Project Path="SoundLibert.Infra/SoundLibert.Infra.csproj" />
+  <Project Path="SoundLibert.UI/SoundLibert.UI.csproj" />
+</Solution>

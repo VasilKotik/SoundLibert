@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             x:Class="SoundLibert.UI.Controls.Spotlight">
+
+    <!-- The big block at the top of Home: one thing worth a look, in its own colour. -->
+    <Border CornerRadius="20" ClipToBounds="True" Height="244"
+            Background="{DynamicResource FillSubtleBrush}"
+            BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1">
+        <Panel>
+            <controls:CoverGlow x:Name="Glow" VerticalAlignment="Stretch"/>
+            <Grid x:Name="Body" ColumnDefinitions="Auto,*" ColumnSpacing="28" Margin="30,0,30,0"
+                  VerticalAlignment="Center">
+                <Grid.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.24" Easing="CubicEaseOut"/>
+                    </Transitions>
+                </Grid.Transitions>
+                <Border x:Name="ArtShadow" Width="184" Height="184" CornerRadius="14"
+                        BoxShadow="0 16 40 #73000000">
+                    <Border x:Name="ArtClip" CornerRadius="14" ClipToBounds="True"
+                            Background="{DynamicResource ArtGradient}">
+                        <controls:RemoteImage x:Name="Art" Stretch="UniformToFill"/>
+                    </Border>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                    <TextBlock x:Name="EyebrowText" Classes="eyebrow" Foreground="{DynamicResource TextMidBrush}"/>
+                    <TextBlock x:Name="TitleText" FontSize="34" FontWeight="Bold" LetterSpacing="-0.7"
+                               TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextBrush}"/>
+                    <TextBlock x:Name="SubtitleText" FontSize="14" FontWeight="Medium"
+                               Foreground="{DynamicResource TextMidBrush}" TextTrimming="CharacterEllipsis"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                        <Button x:Name="PlayButton" Classes="play" ToolTip.Tip="Play" Click="Play_Click">
+                            <controls:Icon Kind="Play" Size="22"/>
+                        </Button>
+                        <Button Classes="ghost" Content="Open" VerticalAlignment="Center" Click="Open_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+            <StackPanel x:Name="Dots" Orientation="Horizontal" Spacing="6"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,22,18"/>
+        </Panel>
+    </Border>
+</UserControl>

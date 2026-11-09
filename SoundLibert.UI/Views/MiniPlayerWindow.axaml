@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SoundLibert.UI.ViewModels"
+        xmlns:controls="using:SoundLibert.UI.Controls"
+        x:Class="SoundLibert.UI.Views.MiniPlayerWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="392" Height="132"
+        MinWidth="330" MinHeight="132"
+        CanResize="True"
+        Topmost="True"
+        Title="SoundLibert"
+        Icon="/Assets/app.ico"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        WindowStartupLocation="Manual">
+
+    <Border x:Name="Root" Margin="10" CornerRadius="18" ClipToBounds="True"
+            Background="{DynamicResource BgBrush}"
+            BorderBrush="{DynamicResource HairlineStrongBrush}"
+            BorderThickness="1"
+            Opacity="0" RenderTransform="scale(0.96)"
+            RenderTransformOrigin="50%,50%">
+        <Border.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="0.2,0,0,1"/>
+            </Transitions>
+        </Border.Transitions>
+        <Grid>
+            <!-- The same living colour as the big window. -->
+            <controls:LiquidBackdrop Source="{Binding ArtworkBackdrop}"
+                                     GlowColor="{Binding AmbientColor}"
+                                     IsFlowing="{Binding IsPlaying}"
+                                     Layers="2" Dim="0.5" Glow="0.25"/>
+
+            <Grid Classes="hoverHost" RowDefinitions="*,Auto" Background="Transparent" Margin="12,12,12,6">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                    <Border Classes="thumb" CornerRadius="10" Width="62" Height="62">
+                        <Panel>
+                            <Path Data="{x:Static controls:BrandArt.Mark}" Fill="#FFFFFF" Width="40" Opacity="0.5" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  IsVisible="{Binding ArtworkImage, Converter={x:Static ObjectConverters.IsNull}}"/>
+                            <!-- Cross-fades on every track change. -->
+                            <TransitioningContentControl Content="{Binding ArtworkImage}">
+                                <TransitioningContentControl.PageTransition>
+                                    <CrossFade Duration="0:0:0.35"/>
+                                </TransitioningContentControl.PageTransition>
+                                <TransitioningContentControl.ContentTemplate>
+                                    <DataTemplate>
+                                        <Image Source="{Binding}" Stretch="UniformToFill"
+                                               RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                                    </DataTemplate>
+                                </TransitioningContentControl.ContentTemplate>
+                            </TransitioningContentControl>
+                        </Panel>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding TrackTitle}" FontSize="13.5" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding TrackArtist}" FontSize="12"
+                                   Foreground="#C4FFFFFF" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button Classes="transport" Width="34" Height="34" ToolTip.Tip="Previous"
+                                Command="{Binding PreviousTrackCommand}">
+                            <controls:Icon Kind="Previous" Size="17"/>
+                        </Button>
+                        <Button Classes="play sm" ToolTip.Tip="Play / Pause"
+                                Command="{Binding PlayPauseCommand}">
+                            <controls:PlayGlyph IsPlaying="{Binding IsPlaying}" Size="18"/>
+                        </Button>
+                        <Button Classes="transport" Width="34" Height="34" ToolTip.Tip="Next"
+                                Command="{Binding NextTrackCommand}">
+                            <controls:Icon Kind="Next" Size="17"/>
+                        </Button>
+                        <Button Classes="transport onHover" Width="34" Height="34" ToolTip.Tip="Back to the full window"
+                                Click="Restore_Click">
+                            <controls:Icon Kind="Expand" Size="15"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Classes="time" Text="{Binding ElapsedText}" FontSize="10.5"
+                               Foreground="#C4FFFFFF" VerticalAlignment="Center"/>
+                    <Slider Grid.Column="1" x:Name="SeekMini" Minimum="0" Maximum="1"
+                            Value="{Binding SeekFraction, Mode=TwoWay}"
+                            VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
+                    <TextBlock Grid.Column="2" Classes="time" Text="{Binding DurationText}" FontSize="10.5"
+                               Foreground="#A0FFFFFF" VerticalAlignment="Center"/>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

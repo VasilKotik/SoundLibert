@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             xmlns:models="using:SoundLibert.Domain.Models"
+             x:Class="SoundLibert.UI.Controls.SongRow"
+             x:DataType="models:SongItem">
+
+    <!-- At rest a row is only its cover, title and length. Heart and menu fade in
+         when the pointer enters the row; a liked heart always stays. -->
+    <Border x:Name="Surface" Classes="row hoverHost" Classes.current="{Binding IsCurrent}"
+            Padding="8,6">
+        <Grid x:Name="RowGrid" ColumnDefinitions="44,*,Auto,34,50,34">
+            <Border x:Name="Thumb" Grid.Column="0" Classes="thumb" Width="44" Height="44">
+                <Panel>
+                    <controls:RemoteImage x:Name="Cover" Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                    <!-- Album pages: the track number instead of the same cover twenty times. -->
+                    <TextBlock x:Name="IndexText" Classes="time" FontSize="13" IsVisible="False"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- Hover: play. Playing: the bars. -->
+                    <Border Classes="thumbShade hoverOnly"
+                            IsVisible="{Binding !IsCurrent}">
+                        <controls:Icon Kind="Play" Size="18" Foreground="#FFFFFF"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Classes="thumbShade currentOnly" IsVisible="{Binding IsCurrent}">
+                        <controls:EqBars Foreground="#FFFFFF" Width="16" Height="14"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Panel>
+            </Border>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3" Margin="12,0,12,0">
+                <TextBlock Classes="rowTitle" Text="{Binding Title}"/>
+                <Grid ColumnDefinitions="Auto,Auto,*"
+                      IsVisible="{Binding #SubtitleText.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <controls:Icon Grid.Column="0" Kind="Downloaded" Size="13" Margin="0,0,5,0"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{Binding IsDownloaded}"/>
+                    <controls:Icon Grid.Column="1" Kind="Video" Size="13" Margin="0,0,5,0"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{Binding IsVideoClip}"/>
+                    <TextBlock x:Name="SubtitleText" Grid.Column="2" Classes="rowSub"
+                               Text="{Binding ArtistDisplay}"/>
+                </Grid>
+            </StackPanel>
+
+            <TextBlock Grid.Column="2" Classes="time" Text="{Binding ViewCountText}"
+                       VerticalAlignment="Center" Margin="0,0,14,0"
+                       IsVisible="{Binding HasViewCount}"/>
+
+            <Button x:Name="LikeButton" Grid.Column="3" Classes="icon sm onHover"
+                    Classes.liked="{Binding IsLiked}" Tag="{Binding}"
+                    ToolTip.Tip="Like" VerticalAlignment="Center">
+                <controls:Icon x:Name="LikeGlyph" Kind="Heart" Size="17" IsFilled="{Binding IsLiked}"/>
+            </Button>
+
+            <TextBlock Grid.Column="4" Classes="time" Text="{Binding DurationDisplay}"
+                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+            <Button x:Name="MoreButton" Grid.Column="5" Classes="icon sm onHover" Tag="{Binding}"
+                    ToolTip.Tip="More" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <controls:Icon Kind="More" Size="18"/>
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

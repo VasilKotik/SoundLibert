@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoundLibert.UI.ViewModels"
+             xmlns:views="using:SoundLibert.UI.Views"
+             xmlns:models="using:SoundLibert.Domain.Models"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             x:Class="SoundLibert.UI.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+    <ScrollViewer x:Name="BoardScroll" HorizontalScrollBarVisibility="Disabled"
+                  ScrollChanged="BoardScroll_ScrollChanged">
+        <StackPanel Margin="32,30,32,40" Spacing="30">
+
+            <!-- ============ Greeting ============ -->
+            <Grid Classes="hoverHost" ColumnDefinitions="*,Auto" Background="Transparent">
+                <StackPanel Spacing="5" VerticalAlignment="Center">
+                    <TextBlock Classes="display" Text="{Binding Greeting}"/>
+                    <TextBlock Classes="page-subtitle" Text="{Binding HeaderLine}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="icon onHover" VerticalAlignment="Center"
+                        Command="{Binding RefreshCommand}"
+                        IsEnabled="{Binding !IsRefreshing}"
+                        ToolTip.Tip="Show me something else">
+                    <controls:Icon Kind="Refresh" Size="19"/>
+                </Button>
+            </Grid>
+
+            <!-- ============ Moods: narrow the whole feed ============ -->
+            <controls:Rail IsVisible="{Binding HasChips}">
+                <ItemsControl ItemsSource="{Binding Chips}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HomeChipVm">
+                            <Button Classes="chip" Classes.active="{Binding IsSelected}"
+                                    Content="{Binding Text}" Tag="{Binding}" Click="Chip_Click"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </controls:Rail>
+
+            <!-- ============ One thing worth a look ============ -->
+            <controls:Spotlight Entries="{Binding Spotlight}" IsVisible="{Binding HasSpotlight}"/>
+
+            <!-- ============ Jump back in ============ -->
+            <StackPanel Spacing="14" IsVisible="{Binding HasQuickPicks}">
+                <TextBlock Classes="section-title" Text="Jump back in"/>
+                <ItemsControl ItemsSource="{Binding QuickPicks}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:AdaptiveGrid MinItemWidth="250" ColumnGap="12" RowGap="12"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:SongItem">
+                            <Border Classes="tile" Tag="{Binding}" Tapped="Recent_Tapped"
+                                    controls:Motion.RevealOnLoad="True">
+                                <Grid ColumnDefinitions="64,*">
+                                    <Border Width="64" Height="64" Background="{DynamicResource ArtGradient}">
+                                        <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Classes="cardTitle" Text="{Binding Title}"/>
+                                        <TextBlock Classes="cardSub" Text="{Binding ArtistDisplay}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- ============ Your top artists ============ -->
+            <StackPanel Spacing="14" IsVisible="{Binding HasTopArtists}">
+                <TextBlock Classes="section-title" Text="Your top artists"/>
+                <controls:Rail>
+                    <ItemsControl ItemsSource="{Binding TopArtists}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="18"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HomeArtistItem">
+                                <controls:CoverCard Width="140" Shape="Round" Title="{Binding Name}"
+                                                    Subtitle="{Binding PlayCountText}"
+                                                    ImageUrl="{Binding ThumbnailUrl}"
+                                                    Tag="{Binding}" Tapped="Artist_Tapped"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </controls:Rail>
+            </StackPanel>
+
+            <!-- ============ Everything else, and it keeps coming ============ -->
+            <views:ShelfStack Shelves="{Binding Shelves}"/>
+
+            <!-- The next shelves are on their way. -->
+            <controls:SkeletonPlaceholder Kind="Cards" Count="7" IsVisible="{Binding IsLoadingMore}" ClipToBounds="True"/>
+
+            <!-- First load without a cached feed: shelf-shaped skeletons. -->
+            <StackPanel Spacing="34" IsVisible="{Binding ShowFeedSkeleton}" ClipToBounds="True">
+                <controls:SkeletonPlaceholder Kind="Cards" Count="7"/>
+                <controls:SkeletonPlaceholder Kind="Cards" Count="7"/>
+            </StackPanel>
+
+            <!-- Fresh install, offline -->
+            <StackPanel Classes="emptyState" IsVisible="{Binding ShowEmptyFeed}">
+                <Border Classes="emptyBadge">
+                    <controls:Icon Kind="Music" Size="30" Foreground="{DynamicResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Classes="emptyText" Text="Search for something to start your world."/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,51 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoundLibert.UI.ViewModels"
+             xmlns:views="using:SoundLibert.UI.Views"
+             x:Class="SoundLibert.UI.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://SoundLibert.UI/Styles/Theme.axaml"/>
+                <ResourceInclude Source="avares://SoundLibert.UI/Styles/ControlThemes.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:HomeViewModel">
+            <views:HomeView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SearchViewModel">
+            <views:SearchView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:LibraryViewModel">
+            <views:LibraryView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:CollectionViewModel">
+            <views:CollectionView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:ArtistViewModel">
+            <views:ArtistView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:VideoFeedViewModel">
+            <views:VideoFeedView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:ShelfPageViewModel">
+            <views:ShelfPageView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:ArtistDiscographyViewModel">
+            <views:ArtistDiscographyView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SettingsViewModel">
+            <views:SettingsView/>
+        </DataTemplate>
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://SoundLibert.UI/Styles/Controls.axaml"/>
+    </Application.Styles>
+</Application>

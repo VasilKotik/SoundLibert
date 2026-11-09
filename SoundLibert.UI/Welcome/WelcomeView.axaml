@@ -1,0 +1,238 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             xmlns:welcome="using:SoundLibert.UI.Welcome"
+             xmlns:chrome="using:Avalonia.Controls.Chrome"
+             x:Class="SoundLibert.UI.Welcome.WelcomeView"
+             x:DataType="welcome:WelcomeViewModel"
+             Focusable="True"
+             RenderTransformOrigin="50%,50%"
+             RenderTransform="scale(1)">
+
+    <UserControl.Styles>
+        <!-- The big buttons, with a warm glow under the main one. -->
+        <Style Selector="Button.cta">
+            <Setter Property="MinHeight" Value="52"/>
+            <Setter Property="Padding" Value="40,0"/>
+            <Setter Property="FontSize" Value="15.5"/>
+            <Setter Property="CornerRadius" Value="26"/>
+        </Style>
+        <Style Selector="Button.cta.primary /template/ Border#Surface">
+            <Setter Property="BoxShadow" Value="0 12 34 0 #66FF7A33"/>
+        </Style>
+
+        <!-- An artist to choose: a ring and a tick spring up around the photo when chosen. -->
+        <Style Selector="Button.artist">
+            <Setter Property="Width" Value="136"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+        </Style>
+        <Style Selector="Button.artist Ellipse.ring">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="RenderTransform" Value="scale(0.86)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.42" Easing="0.34,1.56,0.64,1"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.artist.chosen Ellipse.ring">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+        </Style>
+        <Style Selector="Button.artist Border.photo">
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.36" Easing="0.2,0,0,1"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.artist:pointerover Border.photo">
+            <Setter Property="RenderTransform" Value="scale(1.05)"/>
+        </Style>
+        <Style Selector="Button.artist.chosen Border.photo">
+            <Setter Property="RenderTransform" Value="scale(0.88)"/>
+        </Style>
+        <Style Selector="Button.artist Border.tick">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="RenderTransform" Value="scale(0.3)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.14"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.46" Easing="0.34,1.56,0.64,1"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.artist.chosen Border.tick">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+        </Style>
+        <Style Selector="Button.artist TextBlock.name">
+            <Setter Property="Foreground" Value="#C8FFFFFF"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.16"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.artist:pointerover TextBlock.name, Button.artist.chosen TextBlock.name">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- The search sits on moving colour: a little more glass under it. -->
+        <Style Selector="Border.searchField.welcomeSearch">
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="CornerRadius" Value="22"/>
+            <Setter Property="Padding" Value="16,0,10,0"/>
+            <Setter Property="Background" Value="#24FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#26FFFFFF"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid x:Name="Stage" Background="{DynamicResource BgBrush}">
+
+        <!-- Warm light that flows, and the covers drifting through it. -->
+        <controls:LiquidBackdrop x:Name="Field" IsFlowing="True" GlowColor="#FF7B3A"
+                                 Layers="3" Dim="0.30" Glow="0.34"/>
+        <welcome:CoverWall x:Name="Wall" Opacity="0"/>
+
+        <!-- The middle darkens, so the words stand on calm ground. -->
+        <Border IsHitTestVisible="False">
+            <Border.Background>
+                <RadialGradientBrush Center="50%,48%" GradientOrigin="50%,48%" RadiusX="58%" RadiusY="66%">
+                    <GradientStop Color="#E60B0C11" Offset="0"/>
+                    <GradientStop Color="#A60B0C11" Offset="0.55"/>
+                    <GradientStop Color="#400B0C11" Offset="1"/>
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- After the opening the colour dawns from its dark ground. -->
+        <Border x:Name="Night" Background="#0B0C11" IsHitTestVisible="False" Opacity="0"/>
+
+        <!-- A handle to drag the window by. -->
+        <Border Height="44" VerticalAlignment="Top" Background="Transparent"
+                chrome:WindowDecorationProperties.ElementRole="TitleBar"/>
+
+        <!-- ============================= Hello ============================= -->
+        <StackPanel x:Name="Hello" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Margin="40,0,40,30" RenderTransform="translateY(0px)">
+            <!-- The bird with a warm glow; its footprint is the bird alone. -->
+            <Panel x:Name="MarkHost" Width="330" Height="240" Margin="0,-80,0,-80"
+                   HorizontalAlignment="Center" IsHitTestVisible="False"
+                   RenderTransformOrigin="50%,50%"
+                   RenderTransform="scale(1) translateX(0px) translateY(0px)">
+                <Ellipse>
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#55FF8638" Offset="0"/>
+                            <GradientStop Color="#1FFF8638" Offset="0.5"/>
+                            <GradientStop Color="#00FF8638" Offset="1"/>
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Path x:Name="Mark" Data="{x:Static controls:BrandArt.Mark}" Fill="#FFF4EC"
+                      Width="114" Stretch="Uniform"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Panel>
+
+            <TextBlock x:Name="HelloTitle" Text="Welcome to SoundLibert"
+                       FontSize="54" FontWeight="Bold" LetterSpacing="-1.8"
+                       HorizontalAlignment="Center" Margin="0,40,0,0"/>
+            <TextBlock x:Name="HelloLine" HorizontalAlignment="Center" TextAlignment="Center"
+                       TextWrapping="Wrap" MaxWidth="560" FontSize="17" LineHeight="27"
+                       Foreground="#C8FFFFFF" Margin="0,16,0,0"
+                       Text="The whole YouTube Music catalogue in a calm, living window, where every artist, album and playlist leads to the next."/>
+            <Button x:Name="GetStarted" Classes="primary cta" Content="Get started"
+                    HorizontalAlignment="Center" Margin="0,42,0,0" Click="GetStarted_Click"/>
+            <Button x:Name="SignIn" Classes="link" HorizontalAlignment="Center" Margin="0,18,0,0"
+                    Padding="8,4" Click="SignIn_Click"
+                    Content="Have a YouTube Music library? Sign in with Google"/>
+            <TextBlock x:Name="SignInNote" HorizontalAlignment="Center" TextAlignment="Center"
+                       TextWrapping="Wrap" MaxWidth="460" FontSize="12.5" Margin="0,6,0,0"
+                       Foreground="{DynamicResource DangerBrush}" IsVisible="False"/>
+        </StackPanel>
+
+        <!-- ============================= Your artists ============================= -->
+        <Grid x:Name="Taste" RowDefinitions="Auto,Auto,Auto,*,Auto" MaxWidth="1040"
+              Margin="40,60,40,26" IsVisible="False">
+            <TextBlock x:Name="TasteTitle" Grid.Row="0" Text="Choose a few artists you love"
+                       FontSize="40" FontWeight="Bold" LetterSpacing="-1.2" HorizontalAlignment="Center"/>
+            <TextBlock x:Name="TasteLine" Grid.Row="1" HorizontalAlignment="Center" FontSize="15.5"
+                       Foreground="#B8FFFFFF" Margin="0,10,0,0"
+                       Text="Home will start from them, then follow what you play."/>
+            <Border x:Name="SearchHost" Grid.Row="2" Classes="searchField welcomeSearch" Width="420"
+                    HorizontalAlignment="Center" Margin="0,26,0,6">
+                <Grid ColumnDefinitions="Auto,*">
+                    <controls:Icon Kind="Search" Size="17" Foreground="{DynamicResource TextMutedBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBox Grid.Column="1" x:Name="ArtistSearch" Classes="bare" FontSize="14"
+                             PlaceholderText="Search for an artist" TextChanged="ArtistSearch_TextChanged"/>
+                </Grid>
+            </Border>
+
+            <Panel Grid.Row="3">
+                <ScrollViewer x:Name="ArtistScroll" HorizontalScrollBarVisibility="Disabled" Padding="0,20,0,20">
+                    <ItemsControl x:Name="ArtistList" ItemsSource="{Binding Shown}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="welcome:WelcomeArtistVm">
+                                <Panel Margin="5,0,5,18" controls:Motion.RevealOnLoad="True">
+                                    <Button Classes="artist" Classes.chosen="{Binding IsChosen}" Click="Artist_Click"
+                                            ToolTip.Tip="{Binding Name}">
+                                        <StackPanel Spacing="10">
+                                            <Panel Width="126" Height="126" HorizontalAlignment="Center">
+                                                <Ellipse Classes="ring" Stroke="{DynamicResource AccentBrush}"
+                                                         StrokeThickness="3" RenderTransformOrigin="50%,50%"/>
+                                                <Border Classes="photo" Width="114" Height="114" CornerRadius="57"
+                                                        ClipToBounds="True" Background="#18FFFFFF"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                        RenderTransformOrigin="50%,50%">
+                                                    <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                                </Border>
+                                                <Border Classes="tick" Width="30" Height="30" CornerRadius="15"
+                                                        Background="{DynamicResource AccentBrush}"
+                                                        BorderBrush="#0B0C11" BorderThickness="2"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                        Margin="0,0,6,6" RenderTransformOrigin="50%,50%">
+                                                    <controls:Icon Kind="Check" Size="15"
+                                                                   Foreground="{DynamicResource OnAccentBrush}"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Panel>
+                                            <TextBlock Classes="name" Text="{Binding Name}" Width="130"
+                                                       FontSize="13.5" FontWeight="SemiBold" TextAlignment="Center"
+                                                       TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Panel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock Text="Finding artists…" FontSize="14" Foreground="#99FFFFFF"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding IsLoading}"/>
+                <TextBlock Text="{Binding Problem}" FontSize="14" Foreground="#B8FFFFFF" MaxWidth="460"
+                           TextWrapping="Wrap" TextAlignment="Center"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding ShowProblem}"/>
+            </Panel>
+
+            <Grid x:Name="TasteBar" Grid.Row="4" ColumnDefinitions="*,Auto" Margin="4,10,4,0">
+                <TextBlock Text="{Binding ChosenText}" FontSize="14" Foreground="#B8FFFFFF"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="Done" Grid.Column="1" Classes="cta"
+                        Classes.primary="{Binding HasChosen}" Classes.ghost="{Binding !HasChosen}"
+                        Content="{Binding DoneText}" Click="Done_Click"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

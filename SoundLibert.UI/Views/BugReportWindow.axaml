@@ -1,0 +1,63 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:SoundLibert.UI.Controls"
+        x:Class="SoundLibert.UI.Views.BugReportWindow"
+        Width="580" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        WindowDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Title="Report a bug"
+        Icon="/Assets/app.ico">
+
+    <Border Classes="dialog" Margin="14" Padding="26,24">
+        <StackPanel Spacing="14">
+            <StackPanel Spacing="4">
+                <TextBlock Text="Report a bug" FontSize="19" FontWeight="SemiBold" LetterSpacing="-0.3"/>
+                <TextBlock Text="Thanks for helping make SoundLibert better. The report opens as an issue on GitHub."
+                           FontSize="13" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextDimBrush}"/>
+            </StackPanel>
+
+            <TextBox x:Name="TitleInput" MaxLength="120"
+                     PlaceholderText="Short summary, e.g. “Lyrics stop syncing after a seek”"/>
+
+            <TextBox x:Name="DescriptionInput" AcceptsReturn="True" TextWrapping="Wrap"
+                     Height="130" VerticalContentAlignment="Top"
+                     PlaceholderText="What happened? What did you expect? The steps to make it happen again help the most."/>
+
+            <StackPanel Spacing="4">
+                <CheckBox x:Name="IncludeDiagnostics" IsChecked="True"
+                          Content="Include diagnostics (version, Windows, recent log)"/>
+                <TextBlock Text="IP addresses, emails, link parameters and your Windows user name are removed. You can check everything below."
+                           FontSize="12" TextWrapping="Wrap" Margin="28,0,0,0"
+                           Foreground="{DynamicResource TextMutedBrush}"/>
+                <Button x:Name="PreviewToggle" Classes="link" Margin="28,4,0,0" FontSize="12.5"
+                        Foreground="{DynamicResource TextMidBrush}"
+                        Content="Show what will be shared" Click="PreviewToggle_Click"/>
+            </StackPanel>
+
+            <TextBox x:Name="PreviewBox" IsVisible="False" IsReadOnly="True"
+                     AcceptsReturn="True" TextWrapping="Wrap" Height="170"
+                     FontFamily="Cascadia Mono, Consolas, monospace" FontSize="11"
+                     VerticalContentAlignment="Top"/>
+
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+                <Button Grid.Column="0" Content="Save report…" Classes="quiet" MinHeight="40" Margin="-14,0,0,0"
+                        Click="Save_Click"
+                        ToolTip.Tip="Save the full report as a text file to attach anywhere"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <Button Content="Cancel" Classes="ghost" Click="Cancel_Click"/>
+                    <Button Classes="primary" Click="OpenIssue_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <controls:Icon Kind="External" Size="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Open GitHub issue" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

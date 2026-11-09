@@ -1,0 +1,188 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Full templates for the two controls whose stock look fought the design.
+         Keyed by type, so they apply everywhere without a class. -->
+
+    <!-- ===================== Slider =====================
+         A slim line. The knob has no width of its own, so the two halves of the
+         line meet exactly under it; it appears only when the pointer comes close,
+         together with the line getting a little thicker. The whole height stays
+         clickable. -->
+    <ControlTheme x:Key="SliderLine" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <!-- MinHeight carries the thickness of the line: a selector may not reach
+             through two templates, so the slider sets it here and the template
+             reads it. -->
+        <Setter Property="MinHeight" Value="4"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="MinHeight" Duration="0:0:0.14" Easing="CubicEaseOut"/>
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Border Background="{TemplateBinding Background}"
+                            Height="{TemplateBinding MinHeight}" CornerRadius="3"
+                            VerticalAlignment="Center"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="SliderKnob" TargetType="Thumb">
+        <Setter Property="Width" Value="0"/>
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="RenderTransform" Value="scale(0.5)"/>
+        <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.14"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="0.2,0,0,1"/>
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel Width="0">
+                    <Border Width="13" Height="13" CornerRadius="7"
+                            Background="#FFFFFF"
+                            BoxShadow="0 1 6 #80000000"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="{x:Type Slider}" TargetType="Slider">
+        <Setter Property="Background" Value="#26FFFFFF"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="MinHeight" Value="20"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Background="Transparent">
+                    <Track x:Name="PART_Track"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}"
+                           Orientation="Horizontal"
+                           IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                        <Track.DecreaseButton>
+                            <RepeatButton x:Name="PART_DecreaseButton"
+                                          Theme="{StaticResource SliderLine}"
+                                          Background="{TemplateBinding Foreground}"/>
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton x:Name="PART_IncreaseButton"
+                                          Theme="{StaticResource SliderLine}"
+                                          Background="{TemplateBinding Background}"/>
+                        </Track.IncreaseButton>
+                        <Thumb x:Name="thumb" Theme="{StaticResource SliderKnob}"/>
+                    </Track>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Thumb">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+        </Style>
+        <Style Selector="^:pointerover /template/ RepeatButton">
+            <Setter Property="MinHeight" Value="5"/>
+        </Style>
+
+        <!-- Quiet secondary line (volume, equalizer): white instead of accent. -->
+        <Style Selector="^.soft">
+            <Setter Property="Foreground" Value="#E6FFFFFF"/>
+        </Style>
+        <!-- The fullscreen seek bar: a little more presence. -->
+        <Style Selector="^.large /template/ RepeatButton">
+            <Setter Property="MinHeight" Value="5"/>
+        </Style>
+        <Style Selector="^.large:pointerover /template/ RepeatButton">
+            <Setter Property="MinHeight" Value="7"/>
+        </Style>
+        <!-- Settings: the knob always shows, it is the value. -->
+        <Style Selector="^.knob /template/ Thumb">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+        </Style>
+    </ControlTheme>
+
+    <!-- ===================== Scrollbars =====================
+         A thin capsule with no track or arrows. Hidden until the page is moving
+         (SmoothScroller sets .scrolling) or the pointer reaches the edge. -->
+    <ControlTheme x:Key="ScrollCapsule" TargetType="Thumb">
+        <Setter Property="Background" Value="#38FFFFFF"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Capsule" Background="{TemplateBinding Background}" CornerRadius="3"/>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="#66FFFFFF"/>
+        </Style>
+        <Style Selector="^:pressed">
+            <Setter Property="Background" Value="#80FFFFFF"/>
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="{x:Type ScrollBar}" TargetType="ScrollBar">
+        <Setter Property="Cursor" Value="Arrow"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.25"/>
+            </Transitions>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="^:vertical">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="Transparent" Padding="4,4,3,4">
+                        <Track x:Name="PART_Track"
+                               Minimum="{TemplateBinding Minimum}"
+                               Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value, Mode=TwoWay}"
+                               ViewportSize="{TemplateBinding ViewportSize}"
+                               Orientation="Vertical"
+                               IsDirectionReversed="True"
+                               DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}">
+                            <Thumb Theme="{StaticResource ScrollCapsule}" MinHeight="32"/>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="^:horizontal">
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="Transparent" Padding="4,4,4,3">
+                        <Track x:Name="PART_Track"
+                               Minimum="{TemplateBinding Minimum}"
+                               Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value, Mode=TwoWay}"
+                               ViewportSize="{TemplateBinding ViewportSize}"
+                               Orientation="Horizontal"
+                               DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}">
+                            <Thumb Theme="{StaticResource ScrollCapsule}" MinWidth="32"/>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

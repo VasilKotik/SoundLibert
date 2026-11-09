@@ -1,0 +1,1059 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:SoundLibert.UI.ViewModels"
+        xmlns:views="using:SoundLibert.UI.Views"
+        xmlns:models="using:SoundLibert.Domain.Models"
+        xmlns:controls="using:SoundLibert.UI.Controls"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="SoundLibert.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Icon="/Assets/app.ico"
+        Width="1280" Height="800"
+        MinWidth="1040" MinHeight="660"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Grid x:Name="Root" Background="{DynamicResource BgBrush}" Focusable="True">
+
+        <!-- ============================= Ambient colour =============================
+             One living field behind the whole app, taken from the cover. Everything
+             else floats on it, so the window reads as one object. -->
+        <controls:LiquidBackdrop x:Name="ShellBackdrop"
+                                 Source="{Binding ArtworkBackdrop}"
+                                 GlowColor="{Binding AmbientColor}"
+                                 IsFlowing="{Binding IsShellFlowing}"
+                                 Layers="2" Dim="0.58" Glow="0.22"/>
+
+        <Grid RowDefinitions="*,Auto" ColumnDefinitions="232,*">
+
+            <!-- ============================= Sidebar ============================= -->
+            <Grid Grid.Row="0" Grid.Column="0" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="12,0,10,0">
+
+                <!-- Brand; also a handle to drag the window by. -->
+                <Border Grid.Row="0" Height="58" Background="Transparent"
+                        chrome:WindowDecorationProperties.ElementRole="TitleBar">
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,4,0,0"
+                                VerticalAlignment="Center">
+                        <controls:BrandIcon x:Name="SidebarBrand" Width="30" Height="30"/>
+                        <TextBlock Text="SoundLibert" FontSize="15" FontWeight="Bold"
+                                   LetterSpacing="-0.3" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Search -->
+                <Border Grid.Row="1" Classes="searchField" Margin="0,0,0,12">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <controls:Icon Kind="Search" Size="16"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,9,0"/>
+                        <TextBox Grid.Column="1" x:Name="SearchBox" Classes="bare"
+                                 PlaceholderText="Search"
+                                 KeyDown="SearchBox_KeyDown"
+                                 GotFocus="SearchBox_GotFocus"
+                                 TextChanged="SearchBox_TextChanged"
+                                 Text="{Binding SearchQuery}"/>
+                        <Button Grid.Column="2" Classes="icon sm" Width="26" Height="26"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                Click="ClearSearch_Click" ToolTip.Tip="Clear">
+                            <controls:Icon Kind="Close" Size="14"/>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Navigation: one soft pill slides between the rows. -->
+                <Panel Grid.Row="2">
+                    <Border x:Name="NavPill" Height="40" CornerRadius="10" VerticalAlignment="Top"
+                            Background="{DynamicResource FillSelectedBrush}" IsHitTestVisible="False"
+                            RenderTransform="translateY(0px)">
+                        <Border.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.34" Easing="0.2,0,0,1"/>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
+                    <StackPanel Spacing="2">
+                        <Button Classes="nav" Classes.active="{Binding IsHomeActive}"
+                                Command="{Binding NavigateToHomeCommand}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <controls:Icon Kind="Home" Size="20" IsFilled="{Binding IsHomeActive}"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Home" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+                        <Button Classes="nav" Classes.active="{Binding IsLibraryActive}"
+                                Command="{Binding NavigateToLibraryCommand}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <controls:Icon Kind="Library" Size="20" IsFilled="{Binding IsLibraryActive}"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Library" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Panel>
+
+                <!-- Your music -->
+                <Grid Grid.Row="3" RowDefinitions="Auto,*" Margin="0,22,0,8">
+                    <TextBlock Classes="eyebrow" Text="YOUR MUSIC" Margin="12,0,0,8"/>
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Margin="0,0,-6,0">
+                        <StackPanel Margin="0,0,6,0" Spacing="1">
+                            <Button Classes="nav compact" Click="SidebarLiked_Click">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <Border Width="30" Height="30" CornerRadius="7"
+                                            Background="{DynamicResource AccentSoftBrush}">
+                                        <controls:Icon Kind="Heart" Size="15" IsFilled="True"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="Liked Songs" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </Button>
+                            <ItemsControl ItemsSource="{Binding Playlists}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:PlaylistEntity">
+                                        <Button Classes="nav compact" Tag="{Binding}" Click="SidebarPlaylist_Click"
+                                                Margin="0,1,0,0">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                <Border Classes="thumb" Width="30" Height="30">
+                                                    <Panel>
+                                                        <controls:Icon Kind="Music" Size="14"
+                                                                       Foreground="{DynamicResource TextMutedBrush}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                                    </Panel>
+                                                </Border>
+                                                <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- A downloaded update waits here; then the account, which is also
+                     the way to Settings. -->
+                <StackPanel Grid.Row="4" Spacing="6" Margin="0,0,0,8">
+                    <Button Classes="primary" HorizontalAlignment="Stretch"
+                            IsVisible="{Binding Updates.IsReadyToRestart}"
+                            Command="{Binding RestartToUpdateCommand}"
+                            ToolTip.Tip="{Binding Updates.StatusText}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <controls:Icon Kind="Update" Size="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Restart to update" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav compact" MinHeight="52"
+                            Classes.active="{Binding IsSettingsActive}"
+                            Classes.selected="{Binding IsSettingsActive}"
+                            Command="{Binding NavigateToSettingsCommand}"
+                            ToolTip.Tip="Account and settings">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Border Width="32" Height="32" CornerRadius="999" ClipToBounds="True"
+                                    Background="{DynamicResource FillHoverBrush}">
+                                <Panel>
+                                    <controls:Icon Kind="User" Size="16"
+                                                   Foreground="{DynamicResource TextDimBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <controls:RemoteImage Url="{Binding SettingsViewModel.AccountAvatarUrl}"
+                                                          Stretch="UniformToFill"/>
+                                </Panel>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                <TextBlock Text="{Binding SettingsViewModel.SidebarAccountName}"
+                                           FontSize="12.5" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding SettingsViewModel.SidebarAccountStatus}"
+                                           FontSize="11" FontWeight="Normal" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextMutedBrush}"/>
+                            </StackPanel>
+                            <controls:Icon Grid.Column="2" Kind="Settings" Size="17"
+                                           VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ============================= Content ============================= -->
+            <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="44,*">
+
+                <!-- The top strip drags the window. Back lives here, in one place. -->
+                <Border Grid.Row="0" Background="Transparent"
+                        chrome:WindowDecorationProperties.ElementRole="TitleBar"/>
+                <Button Grid.Row="0" x:Name="BackButton" Classes="icon sm"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,2,0,0"
+                        IsVisible="{Binding CanGoBack}"
+                        Command="{Binding GoBackCommand}" ToolTip.Tip="Back (Alt + Left)">
+                    <controls:Icon Kind="Back" Size="18"/>
+                </Button>
+
+                <!-- One sheet of dark glass holds every page. -->
+                <Border Grid.Row="1" Margin="0,0,12,0" CornerRadius="16" ClipToBounds="True"
+                        Background="{DynamicResource SheetBrush}"
+                        BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1">
+                    <Grid RowDefinitions="Auto,*">
+                        <!-- Status banner (offline / session) -->
+                        <Border Grid.Row="0" Margin="24,16,24,0" CornerRadius="10" Padding="14,10"
+                                Background="{DynamicResource FillHoverBrush}"
+                                IsVisible="{Binding ShowStatusBanner}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <controls:Icon Kind="Warning" Size="16"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding StatusBanner}"
+                                           FontSize="12.5" VerticalAlignment="Center"
+                                           TextWrapping="Wrap"/>
+                            </Grid>
+                        </Border>
+
+                        <TransitioningContentControl x:Name="ContentHost" Grid.Row="1"
+                                                     PageTransition="{x:Null}"
+                                                     Content="{Binding CurrentView}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ============================= Player ============================= -->
+            <Border x:Name="PlayerBar" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                    Classes="hoverHost" Height="90" Padding="14,0,18,0" Background="Transparent">
+                <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="20">
+
+                    <!-- Now playing: the cover opens the full player. -->
+                    <Grid Grid.Column="0" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                        <Button x:Name="PlayerCover" Width="58" Height="58" CornerRadius="10"
+                                Command="{Binding ToggleFullscreenPlayerCommand}"
+                                ToolTip.Tip="Open the full player">
+                            <Border Classes="thumb" CornerRadius="10" Width="58" Height="58">
+                                <Panel>
+                                    <Panel x:Name="PlayerArt">
+                                        <Path Data="{x:Static controls:BrandArt.Mark}" Fill="#FFFFFF" Width="40" Opacity="0.5"
+                                              Stretch="Uniform"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              IsVisible="{Binding ArtworkImage, Converter={x:Static ObjectConverters.IsNull}}"/>
+                                        <Image Source="{Binding ArtworkImage}" Stretch="UniformToFill"
+                                               RenderOptions.BitmapInterpolationMode="HighQuality"
+                                               IsVisible="{Binding ArtworkImage, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                    </Panel>
+                                    <Border x:Name="CoverHoverShade" Background="#8C000000" Opacity="0"
+                                            IsHitTestVisible="False">
+                                        <Border.Transitions>
+                                            <Transitions>
+                                                <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+                                            </Transitions>
+                                        </Border.Transitions>
+                                        <controls:Icon Kind="ChevronUp" Size="24" Foreground="#FFFFFF"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </Panel>
+                            </Border>
+                        </Button>
+
+                        <StackPanel x:Name="PlayerInfo" Grid.Column="1" VerticalAlignment="Center"
+                                    Spacing="2" Margin="14,0,8,0">
+                            <!-- The heart stands right after the title; a long title trims before it. -->
+                            <controls:HugPanel Spacing="2" HorizontalAlignment="Left">
+                                <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                    <controls:EqBars Width="13" Height="11" Margin="0,0,8,0"
+                                                     Foreground="{DynamicResource AccentBrush}"
+                                                     VerticalAlignment="Center"
+                                                     IsVisible="{Binding IsPlaying}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding TrackTitle}"
+                                               FontSize="14" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                                <Button x:Name="LikeButton" Classes="icon sm onHover"
+                                        Classes.liked="{Binding IsCurrentTrackLiked}"
+                                        Margin="0,-8" ToolTip.Tip="Like"
+                                        IsVisible="{Binding HasTrack}"
+                                        Click="LikeCurrent_Click">
+                                    <controls:Icon x:Name="LikeGlyph" Kind="Heart" Size="17"
+                                                   IsFilled="{Binding IsCurrentTrackLiked}"/>
+                                </Button>
+                            </controls:HugPanel>
+                            <Button Classes="link" Click="PlayerArtist_Click"
+                                    ToolTip.Tip="Go to artist"
+                                    IsVisible="{Binding CurrentTrack, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                <TextBlock Text="{Binding TrackArtist}" FontSize="12.5"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Button>
+                            <TextBlock Text="{Binding StatusMessage}" FontSize="11.5"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Transport + progress. Shuffle and repeat wait until the pointer
+                         comes near, unless they are on. -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" Width="480">
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                            <Button Classes="transport toggle onHover" Classes.active="{Binding IsShuffled}"
+                                    ToolTip.Tip="Shuffle" Command="{Binding ToggleShuffleCommand}">
+                                <controls:Icon Kind="Shuffle" Size="18"/>
+                            </Button>
+                            <Button Classes="transport" ToolTip.Tip="Previous"
+                                    Command="{Binding PreviousTrackCommand}">
+                                <controls:Icon Kind="Previous" Size="20"/>
+                            </Button>
+                            <Button Classes="play" ToolTip.Tip="Play / Pause"
+                                    Command="{Binding PlayPauseCommand}">
+                                <controls:PlayGlyph IsPlaying="{Binding IsPlaying}" Size="22"/>
+                            </Button>
+                            <Button Classes="transport" ToolTip.Tip="Next"
+                                    Command="{Binding NextTrackCommand}">
+                                <controls:Icon Kind="Next" Size="20"/>
+                            </Button>
+                            <Button Classes="transport toggle onHover" Classes.active="{Binding IsRepeating}"
+                                    ToolTip.Tip="Repeat" Command="{Binding ToggleRepeatCommand}">
+                                <controls:Icon Kind="{Binding RepeatIcon}" Size="18"/>
+                            </Button>
+                        </StackPanel>
+                        <Grid ColumnDefinitions="40,*,40" ColumnSpacing="8">
+                            <TextBlock Grid.Column="0" Classes="time" Text="{Binding ElapsedText}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                            <Slider x:Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="1"
+                                    Value="{Binding SeekFraction, Mode=TwoWay}"
+                                    VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Classes="time" Text="{Binding DurationText}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Volume, queue, full player at rest; the slider and the menu join
+                         on hover. The hidden ones keep their place, so nothing jumps
+                         under the pointer. -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2"
+                                VerticalAlignment="Center" HorizontalAlignment="Right"
+                                PointerWheelChanged="Volume_PointerWheelChanged">
+                        <Button Classes="icon onHover" ToolTip.Tip="More" Margin="0,0,4,0"
+                                IsVisible="{Binding HasTrack}"
+                                Click="PlayerMore_Click">
+                            <controls:Icon Kind="More" Size="20"/>
+                        </Button>
+                        <Slider x:Name="VolumeSlider" Classes="soft volumeReveal" Minimum="0" Maximum="1" Width="92"
+                                ToolTip.Tip="Volume" Value="{Binding Volume}" VerticalAlignment="Center"/>
+                        <Button Classes="icon" Command="{Binding ToggleMuteCommand}" ToolTip.Tip="Mute">
+                            <controls:Icon Kind="{Binding VolumeIcon}" Size="19"/>
+                        </Button>
+                        <Button Classes="icon" Classes.active="{Binding ShowQueue}"
+                                ToolTip.Tip="Queue" Command="{Binding ToggleQueueCommand}">
+                            <controls:Icon Kind="Queue" Size="19"/>
+                        </Button>
+                        <Button Classes="icon" ToolTip.Tip="Full player (F)"
+                                Command="{Binding ToggleFullscreenPlayerCommand}">
+                            <controls:Icon Kind="Expand" Size="18"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ===================== Fullscreen Now Playing ===================== -->
+        <Border x:Name="FullscreenRoot"
+                Background="{DynamicResource BgBrush}"
+                Classes="fullscreen"
+                Classes.open="{Binding IsFullscreenPlayer}"
+                IsHitTestVisible="{Binding IsFullscreenPlayer}">
+            <Border.Styles>
+                <Style Selector="Border.fullscreen">
+                    <Setter Property="Opacity" Value="0"/>
+                    <Setter Property="RenderTransform" Value="translateY(46px)"/>
+                    <Setter Property="Transitions">
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.26" Easing="CubicEaseOut"/>
+                            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.42" Easing="0.2,0,0,1"/>
+                        </Transitions>
+                    </Setter>
+                </Style>
+                <Style Selector="Border.fullscreen.open">
+                    <Setter Property="Opacity" Value="1"/>
+                    <Setter Property="RenderTransform" Value="translateY(0px)"/>
+                </Style>
+
+                <!-- Everything here sits on moving colour: always light glyphs. -->
+                <Style Selector="Border.fullscreen Button.icon, Border.fullscreen Button.transport">
+                    <Setter Property="Foreground" Value="#E6FFFFFF"/>
+                </Style>
+                <Style Selector="Border.fullscreen Button.icon:pointerover, Border.fullscreen Button.transport:pointerover">
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="Background" Value="#26FFFFFF"/>
+                </Style>
+                <Style Selector="Border.fullscreen Button.icon.active, Border.fullscreen Button.transport.active, Border.fullscreen Button.icon.liked">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                </Style>
+                <Style Selector="Border.fullscreen Button.icon.active:pointerover, Border.fullscreen Button.transport.active:pointerover, Border.fullscreen Button.icon.liked:pointerover">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentHoverBrush}"/>
+                </Style>
+                <Style Selector="Border.fullscreen Slider">
+                    <Setter Property="Background" Value="#38FFFFFF"/>
+                </Style>
+
+                <!-- Song | Video switch -->
+                <Style Selector="Button.segment">
+                    <Setter Property="MinHeight" Value="30"/>
+                    <Setter Property="Padding" Value="14,0"/>
+                    <Setter Property="FontSize" Value="12.5"/>
+                    <Setter Property="Foreground" Value="#D6FFFFFF"/>
+                </Style>
+                <Style Selector="Button.segment:pointerover">
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Style>
+                <Style Selector="Button.segment.active">
+                    <Setter Property="Background" Value="#F6F7FA"/>
+                    <Setter Property="Foreground" Value="#0B0C11"/>
+                </Style>
+                <Style Selector="Button.segment.active:pointerover">
+                    <Setter Property="Foreground" Value="#0B0C11"/>
+                    <Setter Property="Background" Value="#FFFFFF"/>
+                </Style>
+            </Border.Styles>
+
+            <Grid>
+                <!-- Living colour for tracks without a Canvas clip. -->
+                <controls:LiquidBackdrop Source="{Binding ArtworkBackdrop}"
+                                         GlowColor="{Binding AmbientColor}"
+                                         IsFlowing="{Binding IsFullscreenFlowing}"
+                                         IsVisible="{Binding ShowAmbientBackground}"
+                                         Layers="4" Dim="0.32" Glow="0.42"/>
+
+                <!-- Canvas: short looping muted video behind the whole screen.
+                     CanvasVideoView composites as a bitmap, so the UI draws over it. -->
+                <controls:CanvasVideoView x:Name="CanvasSurface"
+                                          MediaPlayer="{Binding CanvasPlayer}"
+                                          IsLight="{Binding IsCanvasLight, Mode=TwoWay}"
+                                          HasFrame="{Binding IsCanvasFrameReady, Mode=TwoWay}"
+                                          MaxFrameSide="{Binding CanvasMaxFrameSide}"
+                                          TrimBars="{Binding !IsVideoMode}"
+                                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                          IsVisible="{Binding IsCanvasActive}">
+                    <controls:CanvasVideoView.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.5"/>
+                        </Transitions>
+                    </controls:CanvasVideoView.Transitions>
+                </controls:CanvasVideoView>
+                <!-- Song mode: a darker veil so the card reads over the clip.
+                     Video mode: only a vignette, the picture stays bright. -->
+                <Border IsVisible="{Binding ShowCanvasShade}" IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Offset="0" Color="#A60B0C11"/>
+                            <GradientStop Offset="0.5" Color="#800B0C11"/>
+                            <GradientStop Offset="1" Color="#D90B0C11"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <Border IsVisible="{Binding ShowVideoShade}" IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Offset="0" Color="#59000000"/>
+                            <GradientStop Offset="0.26" Color="#00000000"/>
+                            <GradientStop Offset="0.68" Color="#00000000"/>
+                            <GradientStop Offset="1" Color="#99000000"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- Canvas loader: a light sweep along the top until the clip's first
+                     frame is on screen; the colour behind keeps flowing meanwhile. -->
+                <Grid x:Name="CanvasLoader" IsHitTestVisible="False" IsVisible="False"
+                      Opacity="0" ClipToBounds="True">
+                    <Grid.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.45"/>
+                        </Transitions>
+                    </Grid.Transitions>
+                    <Border Classes="canvasSweep" Height="2"
+                            HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                <GradientStop Offset="0" Color="#00FFFFFF"/>
+                                <GradientStop Offset="0.85" Color="#AAFFFFFF"/>
+                                <GradientStop Offset="1" Color="#00FFFFFF"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </Grid>
+
+                <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,Auto" Margin="28,8,28,26">
+                        <!-- Reading below the song, the page fades into dark bands around the
+                             controls. They come with the scroll (UpdatePageBands). -->
+                        <Border x:Name="PageBandTop" Grid.Row="0" Grid.ColumnSpan="2" Margin="-28,-8,-28,0"
+                                Background="#E60A0B10" Opacity="0" IsHitTestVisible="False"
+                                IsVisible="{Binding !IsVideoMode}"/>
+
+                        <!-- Top: close, Song | Video, the few things you switch here. -->
+                        <Grid Grid.Row="0" Grid.ColumnSpan="2" x:Name="FullscreenToolbarFade" ColumnDefinitions="*,Auto,*"
+                              Height="48"
+                              Opacity="{Binding FullscreenControlsOpacity}"
+                              IsHitTestVisible="{Binding ShowFullscreenControls}">
+                            <Grid.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+                                </Transitions>
+                            </Grid.Transitions>
+                            <Button Grid.Column="0" Classes="icon lg" HorizontalAlignment="Left"
+                                    Command="{Binding CloseFullscreenPlayerCommand}"
+                                    ToolTip.Tip="Close (Esc)">
+                                <controls:Icon Kind="ChevronDown" Size="24"/>
+                            </Button>
+
+                            <Border Grid.Column="1" CornerRadius="999" Padding="3"
+                                    Background="#1AFFFFFF" VerticalAlignment="Center"
+                                    IsVisible="{Binding HasVideoCounterpart}">
+                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                    <Button Classes="segment" Classes.active="{Binding !IsVideoMode}"
+                                            Click="SongMode_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <controls:Icon Kind="Music" Size="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Song" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="segment" Classes.active="{Binding IsVideoMode}"
+                                            Click="VideoMode_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <controls:Icon Kind="Video" Size="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Video" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Margin="0,0,118,0">
+                                <Button Classes="icon" Classes.active="{Binding ShowLyrics}"
+                                        Command="{Binding ToggleLyricsCommand}"
+                                        ToolTip.Tip="Lyrics"
+                                        IsVisible="{Binding !IsVideoMode}">
+                                    <controls:Icon Kind="Lyrics" Size="19"/>
+                                </Button>
+                                <Button Classes="icon" Classes.active="{Binding ShowQueue}"
+                                        Command="{Binding ToggleQueueCommand}"
+                                        ToolTip.Tip="Queue">
+                                    <controls:Icon Kind="Queue" Size="19"/>
+                                </Button>
+                                <Button Classes="icon" Classes.active="{Binding IsSleepTimerActive}"
+                                        ToolTip.Tip="More" Click="PlayerMore_Click">
+                                    <controls:Icon Kind="More" Size="20"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                    <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="*,Auto">
+                        <!-- The hero fills exactly one screen; about / related / up next
+                             wait below the fold. Hidden in Video mode so the clip is
+                             unobstructed. -->
+                        <ScrollViewer x:Name="FullscreenScroll" Grid.Row="0"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      IsVisible="{Binding !IsVideoMode}">
+                            <StackPanel HorizontalAlignment="Center" Spacing="22" MaxWidth="960">
+                                <Grid x:Name="FullscreenHero"
+                                      Height="{Binding #FullscreenScroll.Bounds.Height, FallbackValue=560}"
+                                      HorizontalAlignment="Center">
+                                    <Grid.Transitions>
+                                        <Transitions>
+                                            <DoubleTransition Property="Opacity" Duration="0:0:0.4"/>
+                                        </Transitions>
+                                    </Grid.Transitions>
+                                    <StackPanel Spacing="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Classes="glass" CornerRadius="28" Padding="20"
+                                                HorizontalAlignment="Center">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="24">
+                                                <Border x:Name="HeroCover" Width="216" Height="216" CornerRadius="18"
+                                                        BoxShadow="0 18 44 #66000000">
+                                                    <Border CornerRadius="18" ClipToBounds="True"
+                                                            Background="{DynamicResource ArtGradient}">
+                                                        <Image Source="{Binding ArtworkImage}" Stretch="UniformToFill"
+                                                               RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                                                    </Border>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6"
+                                                            MinWidth="240" MaxWidth="500">
+                                                    <TextBlock x:Name="HeroTitle" Text="{Binding TrackTitle}" FontSize="34"
+                                                               FontWeight="Bold" LetterSpacing="-0.8"
+                                                               TextWrapping="Wrap" MaxLines="3"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <Button Classes="link" Command="{Binding OpenFullscreenArtistCommand}"
+                                                            ToolTip.Tip="Go to artist">
+                                                        <TextBlock Text="{Binding TrackArtist}" FontSize="17" FontWeight="Medium"
+                                                                   Foreground="#D6FFFFFF"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </Button>
+                                                    <TextBlock Text="{Binding CurrentAlbumTitle}" FontSize="13.5"
+                                                               Foreground="#A0FFFFFF"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               IsVisible="{Binding CurrentAlbumTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="2" x:Name="HeroLike" Classes="icon lg"
+                                                        Classes.liked="{Binding IsCurrentTrackLiked}"
+                                                        VerticalAlignment="Center" ToolTip.Tip="Like"
+                                                        Click="LikeCurrent_Click">
+                                                    <controls:Icon x:Name="HeroLikeGlyph" Kind="Heart" Size="24"
+                                                                   IsFilled="{Binding IsCurrentTrackLiked}"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- The lyric line that is playing -->
+                                        <TextBlock x:Name="SingleLyricLine" Text="{Binding CurrentLyricText}"
+                                                   FontSize="20" FontWeight="SemiBold"
+                                                   Foreground="#FFFFFF"
+                                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                                   TextWrapping="Wrap" MaxWidth="820" MaxLines="2"
+                                                   IsVisible="{Binding SingleLyricShown}">
+                                            <TextBlock.Transitions>
+                                                <Transitions>
+                                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+                                                </Transitions>
+                                            </TextBlock.Transitions>
+                                        </TextBlock>
+
+                                        <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center"
+                                                    IsVisible="{Binding NextTrackTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock Text="UP NEXT" FontSize="10.5" FontWeight="SemiBold"
+                                                       LetterSpacing="1" Foreground="#8CFFFFFF"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding NextTrackTitle}" FontSize="13"
+                                                       Foreground="#D6FFFFFF" MaxWidth="520"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- There is more below. Shows with the controls when the mouse
+                                         moves, and leaves with them. -->
+                                    <Button x:Name="DetailsHint" Classes="scrollHint" VerticalAlignment="Bottom"
+                                            HorizontalAlignment="Center" Margin="0,0,0,4"
+                                            Opacity="{Binding FullscreenControlsOpacity}"
+                                            IsHitTestVisible="{Binding ShowFullscreenControls}"
+                                            IsVisible="{Binding HasFullscreenDetails}"
+                                            Click="DetailsHint_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="Scroll for more" VerticalAlignment="Center"/>
+                                            <controls:Icon x:Name="DetailsHintChevron" Kind="ChevronDown" Size="16"
+                                                           VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- While the next stream resolves, so a stall reads as "working". -->
+                                    <Border HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                            CornerRadius="999" Padding="16,9" Margin="0,0,0,8"
+                                            Background="#CC12141C"
+                                            IsVisible="{Binding IsTrackLoading}">
+                                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                            <ProgressBar IsIndeterminate="True" Width="96" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StatusMessage}" FontSize="12.5"
+                                                       Foreground="{DynamicResource TextDimBrush}"
+                                                       VerticalAlignment="Center" MaxWidth="280"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- What sounds like this song -->
+                                <views:ShelfStack Classes="glass" RailBleed="26"
+                                                  Shelves="{Binding FullscreenLead}"
+                                                  IsVisible="{Binding HasFullscreenLead}"/>
+
+                                <!-- About the artist -->
+                                <Border Classes="glass" Padding="26,22" IsVisible="{Binding HasFullscreenArtist}">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Classes="eyebrow" Text="ABOUT THE ARTIST" Foreground="#A0FFFFFF"/>
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                                            <Border Width="72" Height="72" CornerRadius="999"
+                                                    Background="{DynamicResource ArtGradient}" ClipToBounds="True">
+                                                <controls:RemoteImage Url="{Binding FullscreenArtistImageUrl}" Stretch="UniformToFill"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                                                <TextBlock Text="{Binding FullscreenArtistName}" FontSize="20" FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding FullscreenArtistPlays}" FontSize="13"
+                                                           Foreground="#A0FFFFFF" TextTrimming="CharacterEllipsis"
+                                                           IsVisible="{Binding FullscreenArtistPlays, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Classes="ghost" Content="Open artist"
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding OpenFullscreenArtistCommand}"/>
+                                        </Grid>
+                                        <TextBlock Text="{Binding FullscreenArtistDescription}" FontSize="14"
+                                                   LineHeight="22" Foreground="#C4FFFFFF"
+                                                   TextWrapping="Wrap" MaxLines="10" TextTrimming="CharacterEllipsis"
+                                                   IsVisible="{Binding FullscreenArtistDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Up next -->
+                                <Border Classes="glass" Padding="20,20"
+                                        IsVisible="{Binding HasFullscreenUpNext}">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Classes="eyebrow" Text="UP NEXT" Margin="6,0,0,0" Foreground="#A0FFFFFF"/>
+                                        <ItemsControl ItemsSource="{Binding FullscreenUpNext}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="models:SongItem">
+                                                    <Border Classes="row" Padding="6" Tag="{Binding}"
+                                                            Tapped="FullscreenUpNext_Tapped">
+                                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                                            <Border Classes="thumb" Width="44" Height="44">
+                                                                <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                                <TextBlock Classes="rowTitle" Text="{Binding Title}"/>
+                                                                <TextBlock Classes="rowSub" Text="{Binding ArtistDisplay}"/>
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Classes="time" Text="{Binding DurationDisplay}"
+                                                                       Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Similar artists, more by the artist, playlists -->
+                                <views:ShelfStack Classes="glass" RailBleed="26" Margin="0,0,0,8"
+                                                  Shelves="{Binding FullscreenShelves}"
+                                                  IsVisible="{Binding HasFullscreenShelves}"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <Border x:Name="PageFadeTop" Grid.Row="0" Height="36" Margin="-28,0" VerticalAlignment="Top"
+                                Opacity="0" IsHitTestVisible="False" IsVisible="{Binding !IsVideoMode}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                    <GradientStop Offset="0" Color="#E60A0B10"/>
+                                    <GradientStop Offset="1" Color="#000A0B10"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <!-- One piece, placed by PlacePageBand: two would show a seam where they meet,
+                             since the height of the controls is not a whole number of pixels. -->
+                        <Border x:Name="PageBandBottom" Grid.Row="0" Grid.RowSpan="2" Margin="-28,0,-28,-26"
+                                VerticalAlignment="Bottom" Height="200"
+                                Opacity="0" IsHitTestVisible="False" IsVisible="{Binding !IsVideoMode}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                    <GradientStop Offset="0" Color="#000A0B10"/>
+                                    <GradientStop Offset="0.28" Color="#E60A0B10"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+
+                        <!-- Progress + transport -->
+                        <StackPanel Grid.Row="1" Spacing="12"
+                                    x:Name="FullscreenTransportFade"
+                                    HorizontalAlignment="Center" Width="680"
+                                    Opacity="{Binding FullscreenControlsOpacity}"
+                                    IsHitTestVisible="{Binding ShowFullscreenControls}">
+                            <StackPanel.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+                                </Transitions>
+                            </StackPanel.Transitions>
+                            <Grid ColumnDefinitions="46,*,46" ColumnSpacing="10">
+                                <TextBlock Grid.Column="0" Classes="time" Text="{Binding ElapsedText}"
+                                           Foreground="#D6FFFFFF" FontSize="12"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                <Slider x:Name="SeekSliderFull" Grid.Column="1" Classes="large"
+                                        Minimum="0" Maximum="1"
+                                        Value="{Binding SeekFraction, Mode=TwoWay}"
+                                        VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Classes="time" Text="{Binding DurationText}"
+                                           Foreground="#A0FFFFFF" FontSize="12"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                            <Border Classes="glass" CornerRadius="999" Padding="16,7" HorizontalAlignment="Center"
+                                    Background="#1AFFFFFF">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Classes="transport" Classes.active="{Binding IsShuffled}"
+                                            ToolTip.Tip="Shuffle" Command="{Binding ToggleShuffleCommand}">
+                                        <controls:Icon Kind="Shuffle" Size="20"/>
+                                    </Button>
+                                    <Button Classes="transport lg" ToolTip.Tip="Previous"
+                                            Command="{Binding PreviousTrackCommand}">
+                                        <controls:Icon Kind="Previous" Size="26"/>
+                                    </Button>
+                                    <Button Classes="play lg" ToolTip.Tip="Play / Pause"
+                                            Command="{Binding PlayPauseCommand}">
+                                        <controls:PlayGlyph IsPlaying="{Binding IsPlaying}" Size="30"/>
+                                    </Button>
+                                    <Button Classes="transport lg" ToolTip.Tip="Next"
+                                            Command="{Binding NextTrackCommand}">
+                                        <controls:Icon Kind="Next" Size="26"/>
+                                    </Button>
+                                    <Button Classes="transport" Classes.active="{Binding IsRepeating}"
+                                            ToolTip.Tip="Repeat" Command="{Binding ToggleRepeatCommand}">
+                                        <controls:Icon Kind="{Binding RepeatIcon}" Size="20"/>
+                                    </Button>
+                                    <Border Width="1" Height="28" Margin="6,0" VerticalAlignment="Center"
+                                            Background="#26FFFFFF"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                                                PointerWheelChanged="Volume_PointerWheelChanged">
+                                        <Button Classes="transport" Command="{Binding ToggleMuteCommand}"
+                                                ToolTip.Tip="Mute">
+                                            <controls:Icon Kind="{Binding VolumeIcon}" Size="20"/>
+                                        </Button>
+                                        <Slider x:Name="VolumeSliderFull" Classes="soft" Width="110"
+                                                Minimum="0" Maximum="1" Value="{Binding Volume}"
+                                                VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Lyrics -->
+                    <Border x:Name="LyricsPanel" Grid.Row="1" Grid.Column="1" Width="420" Margin="32,0,0,0"
+                            IsVisible="{Binding ShowLyricsPanel}">
+                        <Grid>
+                            <TextBlock Text="Loading lyrics…" FontSize="15"
+                                       Foreground="#A0FFFFFF"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsLoadingLyrics}"/>
+                            <StackPanel Spacing="12" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        IsVisible="{Binding ShowNoLyrics}">
+                                <controls:Icon Kind="Lyrics" Size="30" Foreground="#70FFFFFF"
+                                               HorizontalAlignment="Center"/>
+                                <TextBlock Text="No lyrics found for this track." FontSize="14"
+                                           Foreground="#A0FFFFFF" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <!-- The ListBox owns its scrolling: nested in an outer scroller
+                                 ScrollIntoView breaks and the highlight drifts off-screen.
+                                 Lines melt away at the top and bottom edges. -->
+                            <ListBox x:Name="LyricsList" Classes="plain"
+                                     ItemsSource="{Binding Lyrics}"
+                                     FontSize="{Binding LyricsFontSize}"
+                                     SelectionMode="Single"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     IsVisible="{Binding HasLyrics}">
+                                <ListBox.OpacityMask>
+                                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                        <GradientStop Offset="0" Color="#00FFFFFF"/>
+                                        <GradientStop Offset="0.14" Color="#FFFFFFFF"/>
+                                        <GradientStop Offset="0.86" Color="#FFFFFFFF"/>
+                                        <GradientStop Offset="1" Color="#00FFFFFF"/>
+                                    </LinearGradientBrush>
+                                </ListBox.OpacityMask>
+                                <!-- A short, finite list: every row realised, so the
+                                     auto-scroll can always find and centre the current line. -->
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Margin="0,120"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:LyricLine">
+                                        <TextBlock Classes="lyric" Margin="4,8" Cursor="Hand"
+                                                   Text="{Binding Text}" TextWrapping="Wrap"
+                                                   Classes.current="{Binding IsCurrent}"
+                                                   Tapped="LyricLine_Tapped"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- The cover that flies between the player bar and the fullscreen hero. -->
+        <Border x:Name="FlyingCover" IsVisible="False" IsHitTestVisible="False"
+                HorizontalAlignment="Left" VerticalAlignment="Top" ClipToBounds="True"
+                CornerRadius="12" Background="{DynamicResource ArtGradient}"
+                BoxShadow="0 18 44 #66000000" RenderTransformOrigin="0%,0%">
+            <Image Source="{Binding ArtworkImage}" Stretch="UniformToFill"
+                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
+        </Border>
+
+        <!-- ============================= Queue =============================
+             Above the fullscreen player, so its toggle works from any view. -->
+        <Border x:Name="QueuePanel" Width="348" IsVisible="False"
+                HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                Margin="0,44,12,98" CornerRadius="16"
+                Background="{DynamicResource GlassPanelBrush}"
+                BorderBrush="{DynamicResource HairlineStrongBrush}"
+                BorderThickness="1" BoxShadow="0 18 50 #80000000">
+            <Grid RowDefinitions="Auto,*" Margin="10,10,6,8">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="10,6,4,8">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="1">
+                        <TextBlock Text="Queue" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Classes="caption" Text="{Binding QueueDurationText}"
+                                   IsVisible="{Binding HasQueueItems}"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="icon sm" ToolTip.Tip="More"
+                            IsVisible="{Binding HasQueueItems}">
+                        <controls:Icon Kind="More" Size="17"/>
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuItem Header="Shuffle the queue" Command="{Binding ReshuffleQueueCommand}">
+                                    <MenuItem.Icon><controls:Icon Kind="Shuffle" Size="16"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Clear the queue" Command="{Binding ClearQueueCommand}">
+                                    <MenuItem.Icon><controls:Icon Kind="Trash" Size="16"/></MenuItem.Icon>
+                                </MenuItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button Grid.Column="2" Classes="icon sm" ToolTip.Tip="Close"
+                            Command="{Binding ToggleQueueCommand}">
+                        <controls:Icon Kind="Close" Size="17"/>
+                    </Button>
+                </Grid>
+                <StackPanel Grid.Row="1" Classes="emptyState" IsVisible="{Binding !HasQueueItems}">
+                    <Border Classes="emptyBadge">
+                        <controls:Icon Kind="Queue" Size="28" Foreground="{DynamicResource TextMutedBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Classes="emptyText" Text="The queue is empty."/>
+                </StackPanel>
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="QueueList" ItemsSource="{Binding QueueItems}" Margin="0,0,6,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:SongItem">
+                                <Border Classes="row hoverHost" Classes.current="{Binding IsCurrent}"
+                                        Padding="4,5" Tapped="QueueItem_Tapped">
+                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                        <!-- Grab here to reorder. -->
+                                        <Border Grid.Column="0" Width="18" Background="Transparent"
+                                                Cursor="SizeNorthSouth"
+                                                ToolTip.Tip="Drag to reorder"
+                                                PointerPressed="QueueDrag_Pressed"
+                                                PointerMoved="QueueDrag_Moved"
+                                                PointerReleased="QueueDrag_Released"
+                                                PointerCaptureLost="QueueDrag_CaptureLost">
+                                            <controls:Icon Classes="gripGlyph" Kind="Grip" Size="14"
+                                                           Foreground="{DynamicResource TextDimBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <Border Grid.Column="1" Classes="thumb" Width="40" Height="40">
+                                            <Panel>
+                                                <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                                <Border Classes="thumbShade currentOnly" IsVisible="{Binding IsCurrent}">
+                                                    <controls:EqBars Foreground="#FFFFFF" Width="15" Height="13"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Panel>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2" Margin="10,0,4,0">
+                                            <TextBlock Classes="rowTitle" FontSize="13" Text="{Binding Title}"/>
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <controls:Icon Kind="Downloaded" Size="12" Margin="0,0,4,0"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               VerticalAlignment="Center"
+                                                               IsVisible="{Binding IsDownloaded}"/>
+                                                <TextBlock Grid.Column="1" Classes="rowSub" Text="{Binding ArtistDisplay}"/>
+                                            </Grid>
+                                        </StackPanel>
+                                        <Button Grid.Column="3" Classes="icon sm onHover" Tag="{Binding}"
+                                                ToolTip.Tip="Remove" Click="QueueRemove_Click"
+                                                VerticalAlignment="Center">
+                                            <controls:Icon Kind="Close" Size="15"/>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Keyboard shortcuts (F1 / ?) -->
+        <Border Background="#99000000" IsVisible="{Binding ShowShortcuts}" ZIndex="20"
+                Tapped="ShortcutsBackdrop_Tapped">
+            <Border Classes="dialog" Width="440" Padding="26,24"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Spacing="18">
+                    <TextBlock Classes="section-title" Text="Keyboard shortcuts"/>
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          RowSpacing="11">
+                        <TextBlock Grid.Row="0" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Play / pause"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="keys" Text="Space"/>
+                        <TextBlock Grid.Row="1" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Seek 5 seconds"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="keys" Text="← / →"/>
+                        <TextBlock Grid.Row="2" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Previous / next track"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="keys" Text="Ctrl + ← / →"/>
+                        <TextBlock Grid.Row="3" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Volume"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Classes="keys" Text="↑ / ↓"/>
+                        <TextBlock Grid.Row="4" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Mute"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Classes="keys" Text="M"/>
+                        <TextBlock Grid.Row="5" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Search"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Classes="keys" Text="Ctrl + K"/>
+                        <TextBlock Grid.Row="6" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Full player"/>
+                        <TextBlock Grid.Row="6" Grid.Column="1" Classes="keys" Text="F"/>
+                        <TextBlock Grid.Row="7" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Window fullscreen"/>
+                        <TextBlock Grid.Row="7" Grid.Column="1" Classes="keys" Text="F11"/>
+                        <TextBlock Grid.Row="8" Classes="setting-note" Foreground="{DynamicResource TextMidBrush}" Text="Back / close"/>
+                        <TextBlock Grid.Row="8" Grid.Column="1" Classes="keys" Text="Alt + ← / Esc"/>
+                    </Grid>
+                    <Button Content="Close" Classes="ghost" HorizontalAlignment="Right"
+                            Click="ShortcutsClose_Click"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- Toast: "Added to …", "Downloaded", "Link copied" … -->
+        <Border Classes="toast" Classes.shown="{Binding IsToastVisible}"
+                Classes.error="{Binding IsToastError}"
+                HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                Margin="0,0,0,104" Padding="14,10,18,10"
+                CornerRadius="999" ZIndex="30"
+                Background="{DynamicResource GlassPopupBrush}"
+                BorderBrush="{DynamicResource HairlineStrongBrush}"
+                BorderThickness="1"
+                BoxShadow="0 14 40 #80000000"
+                IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Panel VerticalAlignment="Center">
+                    <controls:Icon Kind="Check" Size="16" Foreground="{DynamicResource AccentBrush}"
+                                   IsVisible="{Binding !IsToastError}"/>
+                    <controls:Icon Kind="Warning" Size="16"
+                                   IsVisible="{Binding IsToastError}"/>
+                </Panel>
+                <TextBlock Text="{Binding ToastMessage}" FontSize="13" FontWeight="Medium"
+                           Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- A new version, or a gentle question: a card above the player, in the corner. -->
+        <controls:NoticeCard x:Name="Notice" ZIndex="28"
+                             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,100"/>
+
+        <!-- Window buttons: on top of everything, part of the design. -->
+        <StackPanel x:Name="CaptionButtons" Orientation="Horizontal" ZIndex="40"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Opacity="{Binding FullscreenControlsOpacity}">
+            <StackPanel.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+                </Transitions>
+            </StackPanel.Transitions>
+            <Button Classes="caption" Click="ReportBug_Click" ToolTip.Tip="Report a bug">
+                <controls:Icon Kind="Bug" Size="15" Weight="1.2"/>
+            </Button>
+            <Button Classes="caption" Click="CaptionMinimize_Click"
+                    chrome:WindowDecorationProperties.ElementRole="MinimizeButton">
+                <controls:Icon Kind="WindowMinimize" Size="16" Weight="1.2"/>
+            </Button>
+            <Button Classes="caption" Click="CaptionMaximize_Click"
+                    chrome:WindowDecorationProperties.ElementRole="MaximizeButton">
+                <controls:Icon x:Name="MaximizeGlyph" Kind="WindowMaximize" Size="16" Weight="1.2"/>
+            </Button>
+            <Button Classes="caption close" Click="CaptionClose_Click"
+                    chrome:WindowDecorationProperties.ElementRole="CloseButton">
+                <controls:Icon Kind="WindowClose" Size="16" Weight="1.2"/>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>
