@@ -188,6 +188,21 @@ dotnet test
 
 `release.ps1` makes the installer and the update packages (Velopack).
 
+## Developers
+
+<table>
+  <tr>
+    <td align="center" width="160">
+      <a href="https://github.com/VasilKotik"><img src="https://github.com/VasilKotik.png?size=200" width="88" alt=""><br><b>VasilKotik</b></a><br>
+      <sub>Creator</sub>
+    </td>
+    <td align="center" width="160">
+      <a href="https://github.com/kiku-jw"><img src="https://github.com/kiku-jw.png?size=200" width="88" alt=""><br><b>kiku-jw</b></a><br>
+      <sub>Synced lyrics</sub>
+    </td>
+  </tr>
+</table>
+
 ## License
 
 SoundLibert is free software under the [GNU General Public License v3.0](LICENSE). It builds on ideas and ported logic from [Velune](https://github.com/nikhilvishwakarma00/Velune) (GPL-3.0). Every third-party component is listed in [CREDITS.md](CREDITS.md).

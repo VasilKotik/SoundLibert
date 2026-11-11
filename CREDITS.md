@@ -6,6 +6,10 @@ thanks to everyone below.
 
 ## Special thanks
 
+### kiku-jw — https://github.com/kiku-jw
+Helped with the synced lyrics: getting every line to land in time with the
+recording that plays.
+
 ### Velune — https://github.com/nikhilvishwakarma00/Velune
 Velune is a Kotlin/Android YouTube Music client licensed under **GPL-3.0**. Its
 source files credit Kòi Natsuko (koiverse), and it builds on
