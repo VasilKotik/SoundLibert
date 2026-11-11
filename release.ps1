@@ -59,22 +59,27 @@ try {
     if (Test-Path $releaseDir) { Remove-Item -Recurse -Force $releaseDir }
     New-Item -ItemType Directory -Force $releaseDir | Out-Null
 
-    # Delta updates are built against the previous release's full package.
+    # Delta updates are built against the previous release's full package. The
+    # repository is public, so this needs no token (it is used when set).
     # Without it (the first release, or a network problem) users simply download
     # the full package, so this is a warning and not a failure.
-    if ($Upload) {
-        Write-Host "Fetching the previous release for delta packages..."
-        dotnet vpk download github --repoUrl $RepoUrl --token $env:GITHUB_TOKEN -o $releaseDir
-        if ($LASTEXITCODE -ne 0) { Write-Warning "No previous release fetched ($LASTEXITCODE): this release has no delta package." }
-    }
+    Write-Host "Fetching the previous release for delta packages..."
+    $tokenArgs = @()
+    if ($env:GITHUB_TOKEN) { $tokenArgs = @("--token", $env:GITHUB_TOKEN) }
+    dotnet vpk download github --repoUrl $RepoUrl @tokenArgs -o $releaseDir
+    if ($LASTEXITCODE -ne 0) { Write-Warning "No previous release fetched ($LASTEXITCODE): this release has no delta package." }
 
     Write-Host "Packing with Velopack..."
     # Release notes (shown on the GitHub release): docs\release-notes\<version>.md
     $notes = Join-Path $root "docs\release-notes\$Version.md"
     $notesArgs = @()
     if (Test-Path $notes) { $notesArgs = @("--releaseNotes", $notes) }
+    # The installer's window: this picture with an orange progress bar along its
+    # bottom edge. Without it Setup shows only a small grey progress box.
+    $splash = Join-Path $root "docs\brand\installer.png"
     dotnet vpk pack -u $packId -v $Version -r $Rid -p $publishDir -e "SoundLibert.UI.exe" `
-        --packTitle "SoundLibert" --packAuthors "SoundLibert" -i $icon -o $releaseDir @notesArgs
+        --packTitle "SoundLibert" --packAuthors "SoundLibert" -i $icon `
+        --splashImage $splash --splashProgressColor "#FF7A33" -o $releaseDir @notesArgs
     if ($LASTEXITCODE -ne 0) { throw "vpk pack failed ($LASTEXITCODE)" }
 
     if ($Upload) {

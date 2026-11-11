@@ -36,11 +36,15 @@ public partial class App : Application
                     {
                         main = new MainWindow();
                     }
-                    catch
+                    catch (System.Exception ex)
                     {
+                        // Raised inside an event, this would only be logged and the app
+                        // would close with the opening: tell the user first.
+                        SoundLibert.UI.Services.StartupFailure.Show(ex);
                         splash.Close();
                         throw;
                     }
+                    main.Opened += (_, _) => SoundLibert.UI.Services.StartupFailure.Started = true;
                     SoundLibert.UI.Services.StartupClock.Mark("window built");
                     desktop.MainWindow = main;
                     // A welcome under the opening takes the bird over as the opening fades.
@@ -54,7 +58,9 @@ public partial class App : Application
             }
             else
             {
-                desktop.MainWindow = new MainWindow();
+                var main = new MainWindow();
+                main.Opened += (_, _) => SoundLibert.UI.Services.StartupFailure.Started = true;
+                desktop.MainWindow = main;
                 SoundLibert.UI.Services.StartupClock.Mark("window built");
             }
         }

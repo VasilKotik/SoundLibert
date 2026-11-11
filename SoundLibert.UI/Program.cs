@@ -66,6 +66,9 @@ class Program
         {
             System.Diagnostics.Trace.WriteLine($"[App] UNHANDLED: {e.ExceptionObject}");
             WriteCrashLog("AppDomain", e.ExceptionObject);
+            // Before the window opens nothing else on screen would tell the user.
+            if (!SoundLibert.UI.Services.StartupFailure.Started && e.ExceptionObject is Exception fatal)
+                SoundLibert.UI.Services.StartupFailure.Show(fatal);
         };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
@@ -126,8 +129,17 @@ class Program
         // The opening's drawing is prepared while the window system starts.
         if (SoundLibert.UI.Splash.SplashWindow.IsWanted(App.ServiceProvider.GetService<IAppSettings>()))
             SoundLibert.UI.Splash.SplashArt.PrepareAhead(SoundLibert.UI.Controls.BrandArt.MarkData);
-        BuildAvaloniaApp()
-            .StartWithClassicDesktopLifetime(args);
+        try
+        {
+            BuildAvaloniaApp()
+                .StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            // The window system or the first window failed: say so instead of vanishing.
+            WriteCrashLog("Startup", ex);
+            SoundLibert.UI.Services.StartupFailure.Show(ex);
+        }
     }
 
     /// <summary>Writes a fatal exception to %LocalAppData%\SoundLibert\crash.log.</summary>
