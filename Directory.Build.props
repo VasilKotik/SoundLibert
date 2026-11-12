@@ -1,0 +1,11 @@
+<Project>
+  <!-- One product name and one version for every SoundLibert assembly. Code
+       signing (SignPath) checks that each signed file carries the project's
+       name and the release's version; release.ps1 overrides Version. -->
+  <PropertyGroup>
+    <Product>SoundLibert</Product>
+    <Company>SoundLibert</Company>
+    <Copyright>© 2026 SoundLibert contributors · GPL-3.0</Copyright>
+    <Version>0.2.1</Version>
+  </PropertyGroup>
+</Project>

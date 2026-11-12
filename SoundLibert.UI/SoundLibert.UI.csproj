@@ -8,10 +8,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>0.2.1</Version>
-    <Product>SoundLibert</Product>
-    <Company>SoundLibert</Company>
-    <Copyright>© 2026 SoundLibert contributors · GPL-3.0</Copyright>
     <!-- The app ships x64 only: the x86 and ARM64 LibVLC copies were ~195 MB
          of dead weight in every build and installer. -->
     <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>

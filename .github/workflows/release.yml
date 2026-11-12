@@ -1,0 +1,38 @@
+name: Release
+
+# Builds a release on GitHub's servers from this repository and leaves it as a
+# DRAFT release with all its files. Open it on the Releases page, check it, and
+# press Publish: installed apps only see published releases.
+# Release notes come from docs/release-notes/<version>.md.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, for example 0.2.2"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Test, publish and pack
+        shell: powershell
+        run: ./release.ps1 -Version $env:VERSION
+      - name: Upload as a draft release
+        shell: powershell
+        run: >
+          dotnet vpk upload github --repoUrl "https://github.com/$env:GITHUB_REPOSITORY"
+          --token $env:GITHUB_TOKEN -o dist/releases
+          --releaseName "SoundLibert $env:VERSION" --tag "v$env:VERSION"
+          --targetCommitish $env:GITHUB_SHA

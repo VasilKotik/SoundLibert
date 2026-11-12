@@ -116,7 +116,7 @@ Get `SoundLibertApp-win-Setup.exe` from the [latest release](https://github.com/
 - Windows "N" editions also need Microsoft's Media Feature Pack, or songs cannot play.
 
 > [!NOTE]
-> The installer is not code-signed yet, so Windows SmartScreen may warn about an unrecognised app. Choose **More info → Run anyway**.
+> Until the first signed release, Windows SmartScreen may warn about an unrecognised app. Choose **More info → Run anyway**. Releases are going to be signed with free code signing provided by SignPath.io, certificate by SignPath Foundation (see the [code signing policy](#code-signing-policy)).
 
 ## Questions
 
@@ -169,6 +169,17 @@ Not yet. SoundLibert is made for Windows 10 and 11 for now.
 - Signing in is optional. The session is stored encrypted on this device only (Windows DPAPI) and goes nowhere but YouTube Music. Signing out deletes it, along with the sign-in window's browser data.
 - To find lyrics and genres, the title and artist of a track are sent to [LRCLIB](https://lrclib.net) and to Apple's iTunes Search API. Nothing about you or your account goes with them.
 - Bug reports are only ever sent by you. The report shows exactly what will be shared, with IP addresses, emails, link parameters and your Windows user name removed.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- **Committers and reviewers:** [VasilKotik](https://github.com/VasilKotik)
+- **Approvers:** [VasilKotik](https://github.com/VasilKotik)
+
+Signed releases are built by GitHub Actions from the source code in this repository, and every release is approved by hand before it is signed. Only SoundLibert's own files carry the signature. Third-party libraries ship as their authors published them.
+
+**Privacy policy:** SoundLibert sends information only to the services it needs to work, and only as described under [Privacy](#privacy). It has no telemetry, and a bug report is only ever sent by you.
 
 ## Feedback and contributing
 
