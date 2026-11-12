@@ -529,9 +529,15 @@
                                 </StackPanel>
                             </Border>
 
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2"
-                                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                                        Margin="0,0,118,0">
+                            <!-- The few things you switch here, in a glass pill like
+                                 Song | Video, on one line with the window buttons' pill
+                                 beside it (CaptionBar: 118 px wide, 28 px from the edge
+                                 like this page; 10 px between the two). -->
+                            <Border x:Name="FullscreenActions" Grid.Column="2"
+                                    CornerRadius="999" Padding="3" Background="#1AFFFFFF"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Margin="0,0,128,0">
+                            <StackPanel Orientation="Horizontal" Spacing="2">
                                 <Button Classes="icon" Classes.active="{Binding ShowLyrics}"
                                         Command="{Binding ToggleLyricsCommand}"
                                         ToolTip.Tip="Lyrics"
@@ -548,6 +554,7 @@
                                     <controls:Icon Kind="More" Size="20"/>
                                 </Button>
                             </StackPanel>
+                            </Border>
                         </Grid>
 
                     <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="*,Auto">
@@ -705,7 +712,14 @@
                                                             Tapped="FullscreenUpNext_Tapped">
                                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                                             <Border Classes="thumb" Width="44" Height="44">
-                                                                <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                                                <!-- Hover: play, as on every other song row. -->
+                                                                <Panel>
+                                                                    <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                                                                    <Border Classes="thumbShade hoverOnly">
+                                                                        <controls:Icon Kind="Play" Size="18" Foreground="#FFFFFF"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                </Panel>
                                                             </Border>
                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                                                 <TextBlock Classes="rowTitle" Text="{Binding Title}"/>
@@ -1030,16 +1044,40 @@
         <controls:NoticeCard x:Name="Notice" ZIndex="28"
                              HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,100"/>
 
-        <!-- Window buttons: on top of everything, part of the design. -->
-        <StackPanel x:Name="CaptionButtons" Orientation="Horizontal" ZIndex="40"
-                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Opacity="{Binding FullscreenControlsOpacity}">
-            <StackPanel.Transitions>
+        <!-- Window buttons: on top of everything, part of the design. In the
+             fullscreen player they join its top line: round, in a glass pill like
+             Song | Video, beside the player's own pill (FullscreenActions); the
+             report button waits in the player's "more" menu there. -->
+        <Border x:Name="CaptionBar" ZIndex="40"
+                HorizontalAlignment="Right" VerticalAlignment="Top"
+                Classes.fullscreen="{Binding IsFullscreenPlayer}"
+                Opacity="{Binding FullscreenControlsOpacity}">
+            <Border.Styles>
+                <!-- Centred on the player's 48 px line (8 + 24 = 32 from the top), and
+                     as far from the edge as the close chevron on the left. -->
+                <Style Selector="Border#CaptionBar.fullscreen">
+                    <Setter Property="Margin" Value="0,11,28,0"/>
+                    <Setter Property="Padding" Value="3"/>
+                    <Setter Property="CornerRadius" Value="999"/>
+                    <Setter Property="Background" Value="#1AFFFFFF"/>
+                </Style>
+                <Style Selector="Border#CaptionBar.fullscreen StackPanel#CaptionButtons">
+                    <Setter Property="Spacing" Value="2"/>
+                </Style>
+                <Style Selector="Border#CaptionBar.fullscreen Button.caption">
+                    <Setter Property="Width" Value="36"/>
+                    <Setter Property="Height" Value="36"/>
+                    <Setter Property="CornerRadius" Value="999"/>
+                </Style>
+            </Border.Styles>
+            <Border.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
                 </Transitions>
-            </StackPanel.Transitions>
-            <Button Classes="caption" Click="ReportBug_Click" ToolTip.Tip="Report a bug">
+            </Border.Transitions>
+            <StackPanel x:Name="CaptionButtons" Orientation="Horizontal">
+            <Button Classes="caption" Click="ReportBug_Click" ToolTip.Tip="Report a bug"
+                    IsVisible="{Binding !IsFullscreenPlayer}">
                 <controls:Icon Kind="Bug" Size="15" Weight="1.2"/>
             </Button>
             <Button Classes="caption" Click="CaptionMinimize_Click"
@@ -1054,6 +1092,7 @@
                     chrome:WindowDecorationProperties.ElementRole="CloseButton">
                 <controls:Icon Kind="WindowClose" Size="16" Weight="1.2"/>
             </Button>
-        </StackPanel>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

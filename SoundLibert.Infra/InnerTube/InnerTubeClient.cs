@@ -48,15 +48,15 @@ public class InnerTubeClient : IDisposable
     {
         if (!string.IsNullOrEmpty(VisitorData)) return VisitorData;
 
-        await _authLock.WaitAsync(ct);
+        await _authLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             if (!string.IsNullOrEmpty(VisitorData)) return VisitorData;
 
             using var response = await _httpClient.GetAsync(
-                "https://music.youtube.com/sw.js_data", ct);
+                "https://music.youtube.com/sw.js_data", ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-            var text = await response.Content.ReadAsStringAsync(ct);
+            var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             // Body is prefixed with ")]}'\n" (Velune strips first 5 chars).
             var json = text.Length > 5 ? text.Substring(5) : text;
             using var doc = JsonDocument.Parse(json);
@@ -113,9 +113,9 @@ public class InnerTubeClient : IDisposable
             using var watchRequest = new HttpRequestMessage(
                 HttpMethod.Get, $"https://www.youtube.com/watch?v={videoId}&hl=en");
             watchRequest.Headers.UserAgent.ParseAdd(YouTubeClient.WEB.UserAgent);
-            using var watchResponse = await _httpClient.SendAsync(watchRequest, ct);
+            using var watchResponse = await _httpClient.SendAsync(watchRequest, ct).ConfigureAwait(false);
             watchResponse.EnsureSuccessStatusCode();
-            var watchHtml = await watchResponse.Content.ReadAsStringAsync(ct);
+            var watchHtml = await watchResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
             var jsMatch = Regex.Match(watchHtml, "\"jsUrl\"\\s*:\\s*\"([^\"]+base\\.js)\"");
             if (!jsMatch.Success)
@@ -128,9 +128,9 @@ public class InnerTubeClient : IDisposable
             if (_signatureTimestamp.HasValue && _signatureTimestampJsUrl == jsUrl)
                 return _signatureTimestamp;
 
-            using var jsResponse = await _httpClient.GetAsync(jsUrl, ct);
+            using var jsResponse = await _httpClient.GetAsync(jsUrl, ct).ConfigureAwait(false);
             jsResponse.EnsureSuccessStatusCode();
-            var js = await jsResponse.Content.ReadAsStringAsync(ct);
+            var js = await jsResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             var stsMatch = Regex.Match(js, "signatureTimestamp\\s*:\\s*(\\d+)");
             if (!stsMatch.Success) return null;
 
@@ -160,7 +160,7 @@ public class InnerTubeClient : IDisposable
             Params = filter
         };
 
-        return await PostAsync<SearchResponse>("search", client, body, continuation, ct);
+        return await PostAsync<SearchResponse>("search", client, body, continuation, ct).ConfigureAwait(false);
     }
 
     /// <param name="accountOnly">
@@ -190,7 +190,7 @@ public class InnerTubeClient : IDisposable
 
         try
         {
-            return await PostAsync<BrowseResponse>("browse", client, body, null, ct);
+            return await PostAsync<BrowseResponse>("browse", client, body, null, ct).ConfigureAwait(false);
         }
         catch (HttpRequestException ex) when (HasSession && IsSessionRelevant(ex))
         {
@@ -208,7 +208,7 @@ public class InnerTubeClient : IDisposable
             // Public pages (playlists, albums, artists) still load without the session.
             System.Diagnostics.Debug.WriteLine(
                 $"[InnerTube] Authenticated browse failed ({ex.StatusCode}); retrying anonymously.");
-            return await PostAsync<BrowseResponse>("browse", client, body, null, ct, anonymous: true);
+            return await PostAsync<BrowseResponse>("browse", client, body, null, ct, anonymous: true).ConfigureAwait(false);
         }
     }
 
@@ -268,7 +268,7 @@ public class InnerTubeClient : IDisposable
             RacyCheckOk = true
         };
 
-        return await PostAsync<PlayerResponse>("player", client, body, null, ct);
+        return await PostAsync<PlayerResponse>("player", client, body, null, ct).ConfigureAwait(false);
     }
 
     public async Task<GetSearchSuggestionsResponse> GetSearchSuggestionsAsync(
@@ -282,7 +282,7 @@ public class InnerTubeClient : IDisposable
             Input = input
         };
 
-        return await PostAsync<GetSearchSuggestionsResponse>("music/get_search_suggestions", client, body, null, ct);
+        return await PostAsync<GetSearchSuggestionsResponse>("music/get_search_suggestions", client, body, null, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -318,7 +318,7 @@ public class InnerTubeClient : IDisposable
             WatchEndpointMusicSupportedConfigs = watchEndpointMusicSupportedConfigs
         };
 
-        return await PostAsync<NextResponse>("next", client, body, null, ct);
+        return await PostAsync<NextResponse>("next", client, body, null, ct).ConfigureAwait(false);
     }
 
     // ---------------------------------------------------------- account operations
@@ -330,7 +330,7 @@ public class InnerTubeClient : IDisposable
     public async Task<AccountMenuResponse> AccountMenuAsync(YouTubeClient client, CancellationToken ct = default)
     {
         var body = new AccountMenuBody { Context = BuildContext(client, setLogin: true) };
-        return await PostAsync<AccountMenuResponse>("account/account_menu", client, body, null, ct);
+        return await PostAsync<AccountMenuResponse>("account/account_menu", client, body, null, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -346,7 +346,7 @@ public class InnerTubeClient : IDisposable
             VideoIds = videoIds is { Count: > 0 } ? videoIds.ToList() : null,
             PlaylistId = string.IsNullOrWhiteSpace(playlistId) ? null : playlistId
         };
-        return await PostAsync<GetQueueResponse>("music/get_queue", client, body, null, ct);
+        return await PostAsync<GetQueueResponse>("music/get_queue", client, body, null, ct).ConfigureAwait(false);
     }
 
     private Context BuildContext(YouTubeClient client, bool setLogin = false)
@@ -402,10 +402,10 @@ public class InnerTubeClient : IDisposable
 
         AddHeaders(request, client, anonymous);
 
-        using var response = await _httpClient.SendAsync(request, ct);
-        await ThrowIfFailedAsync(response, ct);
+        using var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+        await ThrowIfFailedAsync(response, ct).ConfigureAwait(false);
 
-        var responseJson = await response.Content.ReadAsStringAsync(ct);
+        var responseJson = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         return JsonSerializer.Deserialize<T>(responseJson, ResponseJson)!;
     }
 
@@ -413,7 +413,7 @@ public class InnerTubeClient : IDisposable
     private static async Task ThrowIfFailedAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (response.IsSuccessStatusCode) return;
-        var body = await response.Content.ReadAsStringAsync(ct);
+        var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         if (body.Length > 1200) body = body[..1200];
         System.Diagnostics.Debug.WriteLine(
             $"[InnerTube] HTTP {(int)response.StatusCode} {response.ReasonPhrase} -> {body}");

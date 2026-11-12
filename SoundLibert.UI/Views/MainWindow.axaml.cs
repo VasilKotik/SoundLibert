@@ -108,10 +108,9 @@ public partial class MainWindow : Window
         SoundLibert.UI.Services.SingleInstance.ListenForActivation(
             () => Dispatcher.UIThread.Post(RestoreFromTray));
 
-        // One right-click handler for the whole app (rows, cards, tiles).
-        AddHandler(ContextRequestedEvent, OnItemContextRequested, RoutingStrategies.Bubble);
-        // ...and one handler for every card's hover play button.
-        AddHandler(Button.ClickEvent, OnCardPlayClick, RoutingStrategies.Bubble);
+        // One right-click handler for the whole app (rows, cards, tiles), and one for
+        // every card's hover play button.
+        ItemMenus.Attach(this, () => _viewModel);
 
         // Media keys (Play/Pause, Next, Previous) while the window is active.
         if (OperatingSystem.IsWindows())
@@ -145,7 +144,7 @@ public partial class MainWindow : Window
 #if WINDOWS
         // Publish the now-playing track to the Windows media overlay once the
         // native window handle exists.
-        Opened += (_, _) => _viewModel?.InitializeSmtc(TryGetPlatformHandle()?.Handle ?? IntPtr.Zero);
+        Opened += (_, _) => _viewModel?.AttachSystemMedia(new WindowsMediaControls(TryGetPlatformHandle()?.Handle ?? IntPtr.Zero));
 #endif
         PropertyChanged += (_, e) =>
         {
@@ -674,7 +673,9 @@ public partial class MainWindow : Window
     {
         if (sender is Control anchor && _viewModel != null)
             TrackMenu.ShowNowPlaying(anchor, _viewModel, () => MiniPlayer_Click(null, new RoutedEventArgs()),
-                () => SleepCustom_Click(null, new RoutedEventArgs()));
+                () => SleepCustom_Click(null, new RoutedEventArgs()),
+                // The fullscreen player keeps the window buttons alone in their pill.
+                _viewModel.IsFullscreenPlayer ? () => ReportBug_Click(null, new RoutedEventArgs()) : null);
     }
 
     /// <summary>The wheel over the volume changes the volume.</summary>
@@ -696,7 +697,10 @@ public partial class MainWindow : Window
     private void UpdateCaptionButtons()
     {
         MaximizeGlyph.Kind = WindowState == WindowState.Maximized ? IconKind.WindowRestore : IconKind.WindowMaximize;
-        CaptionButtons.IsVisible = WindowState != WindowState.FullScreen;
+        var buttons = WindowState != WindowState.FullScreen;
+        CaptionBar.IsVisible = buttons;
+        // Without the window buttons the player's pill takes the corner itself.
+        FullscreenActions.Margin = new Thickness(0, 0, buttons ? 128 : 0, 0);
     }
 
     // ---- Motion of the shell ----
@@ -924,88 +928,6 @@ public partial class MainWindow : Window
         var index = _viewModel?.CurrentLyricIndex ?? -1;
         if (index >= 0)
             Dispatcher.UIThread.Post(() => CenterLyric(index), DispatcherPriority.Background);
-    }
-
-    /// <summary>
-    /// Right-click anywhere on a song row or a collection card opens the same
-    /// menu as its "…" button (tracks) or the shared card menu (albums,
-    /// playlists, artists). Resolved from the DataContext under the pointer, so
-    /// every list and grid gets it without per-view wiring.
-    /// </summary>
-    private void OnItemContextRequested(object? sender, ContextRequestedEventArgs e)
-    {
-        var host = _viewModel;
-        if (host == null || e.Handled || e.Source is TextBox) return;
-
-        for (var visual = e.Source as Visual; visual != null && visual != this; visual = visual.GetVisualParent())
-        {
-            if (visual is not Control control || control.DataContext is null) continue;
-            if (ReferenceEquals(control.DataContext, host) || control.DataContext is ViewModelBase) return;
-
-            switch (control.DataContext)
-            {
-                case SongItem song:
-                    Func<SongItem, System.Threading.Tasks.Task>? remove = null;
-                    if (song.IsLocalPlaylist && host.CurrentView is CollectionViewModel { IsLocalPlaylist: true } local)
-                        remove = s => local.RemoveFromPlaylistCommand.ExecuteAsync(s);
-                    SoundLibert.UI.Services.TrackMenu.Show(control, song, host, remove);
-                    break;
-                case ShelfCard { Item.Song: { } cardSong }:
-                    SoundLibert.UI.Services.TrackMenu.Show(control, cardSong, host);
-                    break;
-                case ShelfCard card:
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, card.Item.Id, card.Title, card.ThumbnailUrl, card.Subtitle);
-                    break;
-                case AlbumItem album:
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, album.Id, album.Title, album.ThumbnailUrl, album.ArtistDisplay);
-                    break;
-                case PlaylistItem playlist:
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, playlist.Id, playlist.Title, playlist.ThumbnailUrl, null);
-                    break;
-                case ArtistItem artist when !string.IsNullOrWhiteSpace(artist.Id):
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, artist.Id, artist.Name, artist.ThumbnailUrl, "Artist");
-                    break;
-                case HomeArtistItem topArtist when !string.IsNullOrWhiteSpace(topArtist.Id):
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, topArtist.Id, topArtist.Name, topArtist.ThumbnailUrl, "Artist");
-                    break;
-                case DiscographyCard disc:
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, disc.Id, disc.Title, disc.CoverUrl, disc.Subtitle);
-                    break;
-                case LibraryCard { Playlist: { } entity }:
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, entity.Id, entity.Title, entity.ThumbnailUrl, null);
-                    break;
-                case PlaylistEntity entity:
-                    SoundLibert.UI.Services.CardMenu.Show(control, host, entity.Id, entity.Title, entity.ThumbnailUrl, null);
-                    break;
-                default:
-                    continue;
-            }
-            e.Handled = true;
-            return;
-        }
-    }
-
-    /// <summary>
-    /// The hover ▶ on any album / playlist / artist card plays it right away
-    /// (views only add the button; Home handles its own song cards first).
-    /// </summary>
-    private void OnCardPlayClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (e.Handled || _viewModel is not { } host) return;
-        if (e.Source is not Button { Classes: var classes } button || !classes.Contains("cardPlay")) return;
-
-        (string Id, string Title, string? Thumb)? target = button.DataContext switch
-        {
-            AlbumItem album => (album.Id, album.Title, album.ThumbnailUrl),
-            PlaylistItem playlist => (playlist.Id, playlist.Title, playlist.ThumbnailUrl),
-            DiscographyCard disc => (disc.Id, disc.Title, disc.CoverUrl),
-            ArtistItem artist => (artist.Id, artist.Name, artist.ThumbnailUrl),
-            LibraryCard { Playlist: { } entity } => (entity.Id, entity.Title, entity.ThumbnailUrl),
-            _ => null
-        };
-        if (target is not { } t || string.IsNullOrWhiteSpace(t.Id)) return;
-        e.Handled = true;
-        _ = host.PlayCollectionAsync(t.Id, t.Title, t.Thumb);
     }
 
     private int _lastNavDepth;

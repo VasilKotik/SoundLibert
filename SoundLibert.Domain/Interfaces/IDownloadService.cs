@@ -47,6 +47,16 @@ public interface IDownloadService
     /// <summary>Gets the offline file path for a song when one is available.</summary>
     bool TryGetPath(string songId, out string? path);
 
+    /// <summary>
+    /// The id an offline copy of this song is kept under: its own, one of its known
+    /// versions', or another version's of the same song (an album page lists the
+    /// music video's id; the copy was saved from the audio track). Null when none.
+    /// </summary>
+    string? CopyOf(SongItem song);
+
+    /// <summary>An offline copy of this song exists, under whichever id (see <see cref="CopyOf"/>).</summary>
+    bool HasCopy(SongItem song) => CopyOf(song) != null;
+
     /// <summary>Queues a catalogue song for offline download (idempotent).</summary>
     Task DownloadAsync(SongItem song, CancellationToken ct = default);
 

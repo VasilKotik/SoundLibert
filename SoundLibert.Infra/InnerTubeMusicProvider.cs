@@ -109,6 +109,23 @@ public partial class InnerTubeMusicProvider : IMusicProvider
             }
         }
 
+        // An album's rows leave the artist out when it is the album's own (the
+        // header says it once). A track without it played as "Pick a track to
+        // begin", found no lyrics and matched no like: it takes the album's.
+        var album = ParseAlbumFromBrowse(response, albumBrowseId);
+        foreach (var song in songs)
+        {
+            song.IsAlbumTrack = true;
+            if (song.Artists.Count == 0 && album?.Artists.Count > 0)
+            {
+                song.Artists = album.Artists.Select(a => new Artist { Name = a.Name, Id = a.Id }).ToList();
+                song.InheritsAlbumArtist = true;
+            }
+            if (string.IsNullOrWhiteSpace(song.AlbumTitle) && !string.IsNullOrWhiteSpace(album?.Title))
+                song.AlbumTitle = album.Title;
+            if (string.IsNullOrWhiteSpace(song.AlbumId)) song.AlbumId = albumBrowseId;
+        }
+
         return songs;
     }
 
@@ -1871,6 +1888,16 @@ public partial class InnerTubeMusicProvider : IMusicProvider
     }
 
     /// <summary>Parses "1.1B views" / "723M views" from a Video row subtitle.</summary>
+    /// <summary>The word YouTube Music put on a count: "plays" (a song) is true, "views" (a video) false.</summary>
+    private static bool? CountWord(RunsText? text)
+    {
+        var words = text?.FullText();
+        if (string.IsNullOrEmpty(words)) return null;
+        if (words.Contains(" plays", StringComparison.OrdinalIgnoreCase)) return true;
+        if (words.Contains(" views", StringComparison.OrdinalIgnoreCase)) return false;
+        return null;
+    }
+
     private static long ParseViewCount(RunsText? subtitle)
     {
         if (subtitle?.Runs == null) return 0;
@@ -1907,7 +1934,12 @@ public partial class InnerTubeMusicProvider : IMusicProvider
     /// HTTP Range requests. A 403 (or other failure) means the URL will not
     /// play and the next fallback client must be tried.
     /// </summary>
-    private static async Task<bool> ValidateStreamUrlAsync(string url, YouTubeClient client, CancellationToken ct)
+    private static Task<bool> ValidateStreamUrlAsync(string url, YouTubeClient client, CancellationToken ct)
+        // Off the UI thread: closing a half-read response may touch the network, which
+        // Android's HTTP stack refuses to do on the main thread.
+        => Task.Run(() => ProbeStreamUrlAsync(url, client, ct), ct);
+
+    private static async Task<bool> ProbeStreamUrlAsync(string url, YouTubeClient client, CancellationToken ct)
     {
         try
         {
@@ -2062,6 +2094,10 @@ public partial class InnerTubeMusicProvider : IMusicProvider
                     duration = ThumbnailExtensions.ParseTime(fixedText);
             }
 
+            // Artist pages keep the plays in a column of their own ("7B plays").
+            var countText = columns.Skip(1)
+                .Select(c => c.MusicResponsiveListItemFlexColumnRenderer?.Text)
+                .FirstOrDefault(t => ParseViewCount(t) > 0);
             songs.Add(new SongItem
             {
                 Id = videoId,
@@ -2072,10 +2108,8 @@ public partial class InnerTubeMusicProvider : IMusicProvider
                 ThumbnailUrl = thumbnail,
                 IsExplicit = isExplicit,
                 VideoType = ExtractVideoType(renderer, columns),
-                // Artist pages keep the plays in a column of their own ("7B plays").
-                ViewCount = columns.Skip(1)
-                    .Select(c => ParseViewCount(c.MusicResponsiveListItemFlexColumnRenderer?.Text))
-                    .FirstOrDefault(v => v > 0)
+                ViewCount = ParseViewCount(countText),
+                CountsPlays = CountWord(countText)
             });
         }
         else if (!string.IsNullOrEmpty(browseId))

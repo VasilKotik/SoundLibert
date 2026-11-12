@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
-using SoundLibert.Audio;
 using SoundLibert.Domain.Interfaces;
 using SoundLibert.Infra;
+using SoundLibert.Infra.AiMusic;
 using SoundLibert.Infra.Genres;
 using SoundLibert.Infra.InnerTube;
 using SoundLibert.Infra.Lyrics;
@@ -15,9 +15,13 @@ public static class ServiceCollectionExtensions
     {
         var innerTubeClient = new InnerTubeClient();
         services.AddSingleton(innerTubeClient);
-        services.AddSingleton<IMusicProvider>(new InnerTubeMusicProvider(innerTubeClient));
-        services.AddSingleton<IAudioPlayer, NAudioPlayer>();
-        services.AddSingleton<IMediaProbe, MediaFoundationProbe>();
+        // The catalogue, with AI-generated acts kept out of what is recommended (search and
+        // what the listener opens stay whole).
+        var catalogue = new InnerTubeMusicProvider(innerTubeClient);
+        services.AddSingleton<IAiMusicFilter, AiMusicFilter>();
+        services.AddSingleton<IMusicProvider>(sp => new RecommendationFilter(catalogue, sp.GetRequiredService<IAiMusicFilter>()));
+        // The player and the decoder probe belong to each platform (NAudio and Media
+        // Foundation on Windows, Media3 on Android): the app registers its own.
         services.AddSingleton<IQueueService, QueueService>();
         services.AddSingleton<IMusicDatabase, SqliteMusicDatabase>();
         services.AddSingleton<ILyricsProvider, CompositeLyricsProvider>();
@@ -30,6 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AppSettingsService>();
         services.AddSingleton<IAppSettings>(sp => sp.GetRequiredService<AppSettingsService>());
         services.AddSingleton<IAudioSettings>(sp => sp.GetRequiredService<AppSettingsService>());
+        services.AddSingleton<IAiMusicSettings>(sp => sp.GetRequiredService<AppSettingsService>());
 
         return services;
     }

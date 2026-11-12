@@ -30,16 +30,16 @@ public sealed class CompositeLyricsProvider : ILyricsProvider
     public bool IsEnabled => true;
 
     public async Task<string?> GetExactTimedLyricsAsync(string videoId, CancellationToken ct = default)
-        => (await _ytm.GetAsync(videoId, ct))?.Synced;
+        => (await _ytm.GetAsync(videoId, ct).ConfigureAwait(false))?.Synced;
 
     public async Task<string?> GetLyricsAsync(
         string videoId, string title, string artist, string? album,
         int durationSeconds, CancellationToken ct = default)
     {
-        var ytm = await _ytm.GetAsync(videoId, ct);
+        var ytm = await _ytm.GetAsync(videoId, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(ytm?.Synced)) return ytm.Synced;
 
-        var lrc = await _lrclib.GetLyricsAsync(videoId, title, artist, album, durationSeconds, ct);
+        var lrc = await _lrclib.GetLyricsAsync(videoId, title, artist, album, durationSeconds, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(lrc) && SyncedLyricsParser.Parse(lrc).SyncType != LyricsSyncType.None)
             return lrc;
 

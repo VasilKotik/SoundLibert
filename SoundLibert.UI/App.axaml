@@ -8,8 +8,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://SoundLibert.UI/Styles/Theme.axaml"/>
-                <ResourceInclude Source="avares://SoundLibert.UI/Styles/ControlThemes.axaml"/>
+                <ResourceInclude Source="avares://SoundLibert.Shared/Styles/Theme.axaml"/>
+                <ResourceInclude Source="avares://SoundLibert.Shared/Styles/ControlThemes.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
@@ -46,6 +46,6 @@
 
     <Application.Styles>
         <FluentTheme />
-        <StyleInclude Source="avares://SoundLibert.UI/Styles/Controls.axaml"/>
+        <StyleInclude Source="avares://SoundLibert.Shared/Styles/Controls.axaml"/>
     </Application.Styles>
 </Application>

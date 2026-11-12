@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoundLibert.UI.ViewModels"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             x:Class="SoundLibert.UI.Views.ArtistDiscographyView"
+             x:DataType="vm:ArtistDiscographyViewModel">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" ScrollChanged="Scroller_ScrollChanged">
+        <StackPanel Margin="0,0,0,40" Spacing="22">
+            <controls:PageHero Eyebrow="DISCOGRAPHY" IsRound="True" Glyph="User" ArtSize="140"
+                               Title="{Binding ArtistName}"
+                               ImageUrl="{Binding ThumbnailUrl}">
+                <controls:PageHero.Actions>
+                    <!-- Only the categories this artist has. -->
+                    <ItemsControl ItemsSource="{Binding Chips}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DiscographyChip">
+                                <Button Classes="chip" Classes.active="{Binding IsActive}" Margin="0,0,6,6"
+                                        Content="{Binding LabelWithCount}" Tag="{Binding}"
+                                        Click="Chip_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </controls:PageHero.Actions>
+            </controls:PageHero>
+
+            <TextBlock Text="{Binding EmptyMessage}" FontSize="13.5" Margin="{x:Static controls:PageLayout.Side}"
+                       Foreground="{DynamicResource TextDimBrush}"
+                       IsVisible="{Binding !HasItems}"/>
+
+            <ItemsControl ItemsSource="{Binding Items}" Margin="{x:Static controls:PageLayout.Side}" IsVisible="{Binding HasItems}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls:AdaptiveGrid MinItemWidth="160"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DiscographyCard">
+                        <controls:CoverCard Title="{Binding Title}" Subtitle="{Binding Subtitle}"
+                                            ImageUrl="{Binding CoverUrl}" Tag="{Binding}"
+                                            Tapped="Card_Tapped"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

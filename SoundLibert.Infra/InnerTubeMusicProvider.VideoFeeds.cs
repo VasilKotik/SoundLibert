@@ -57,6 +57,7 @@ public partial class InnerTubeMusicProvider
             Artists = artists,
             ThumbnailUrl = card.ThumbnailRenderer?.GetThumbnailUrl() ?? string.Empty,
             ViewCount = ParseViewCount(card.Subtitle),
+            CountsPlays = CountWord(card.Subtitle),
             VideoType = watch.WatchEndpointMusicSupportedConfigs?.WatchEndpointMusicConfig?.MusicVideoType
         };
     }

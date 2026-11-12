@@ -31,7 +31,7 @@ public sealed class YouTubeMusicLyricsProvider
             || !videoId.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-')) return null;
         try
         {
-            var next = await PostAsync("next", new JsonObject { ["videoId"] = videoId }, ct);
+            var next = await PostAsync("next", new JsonObject { ["videoId"] = videoId }, ct).ConfigureAwait(false);
             var browseId = FindAll(next, "browseEndpoint")
                 .Select(e => e?["browseId"]?.GetValue<string>())
                 .FirstOrDefault(id => id != null && id.StartsWith("MPLY", StringComparison.Ordinal));
@@ -41,7 +41,7 @@ public sealed class YouTubeMusicLyricsProvider
                 return null;
             }
 
-            var browse = await PostAsync("browse", new JsonObject { ["browseId"] = browseId }, ct);
+            var browse = await PostAsync("browse", new JsonObject { ["browseId"] = browseId }, ct).ConfigureAwait(false);
             var source = FindAll(browse, "sourceMessage").Select(TextOf).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
 
             var timed = FindAll(browse, "timedLyricsData").OfType<JsonArray>().FirstOrDefault();
@@ -113,10 +113,10 @@ public sealed class YouTubeMusicLyricsProvider
         request.Headers.Add("X-YouTube-Client-Name", Client.ClientId);
         request.Headers.Add("X-YouTube-Client-Version", Client.ClientVersion);
 
-        using var response = await Http.SendAsync(request, ct);
+        using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonNode.ParseAsync(stream, cancellationToken: ct);
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        return await JsonNode.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
     }
 
     private static string? TextOf(JsonNode? node)

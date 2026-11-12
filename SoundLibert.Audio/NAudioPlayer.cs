@@ -20,7 +20,15 @@ namespace SoundLibert.Audio;
 public sealed class NAudioPlayer : IAudioPlayer
 {
     private const int SystemDefaultDevice = -1;
-    private const int OutputLatencyMs = 100;
+    /// <summary>
+    /// Sound queued ahead of the speakers. 100 ms in three slices left the refill
+    /// 66 ms: while the listener worked in another app (in front, favoured by
+    /// Windows) the music stuttered. Four slices of 50 ms leave 150 ms and keep a
+    /// volume or EQ change audible within a fifth of a second. The reported
+    /// position counts played bytes, so the lyrics stay in step whatever the depth.
+    /// </summary>
+    private const int OutputLatencyMs = 200;
+    private const int OutputBuffers = 4;
     private static readonly TimeSpan EarlyEndTolerance = TimeSpan.FromSeconds(5);
 
     private readonly object _lock = new();
@@ -483,13 +491,11 @@ public sealed class NAudioPlayer : IAudioPlayer
         _outputProvider = provider;
     }
 
-    // Low latency keeps the audible position (and therefore the lyrics) close to
-    // the reported playback position.
     private static WaveOutEvent NewWaveOut(int device) => new()
     {
         DeviceNumber = device,
         DesiredLatency = OutputLatencyMs,
-        NumberOfBuffers = 3
+        NumberOfBuffers = OutputBuffers
     };
 
     /// <summary>

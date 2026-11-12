@@ -302,7 +302,8 @@ public partial class InnerTubeMusicProvider
                 Artists = ArtistsWithoutType(card.Subtitle),
                 ThumbnailUrl = thumbnail,
                 VideoType = type,
-                ViewCount = ParseViewCount(card.Subtitle)
+                ViewCount = ParseViewCount(card.Subtitle),
+                CountsPlays = CountWord(card.Subtitle)
             };
             var isVideo = IsVideoType(type);
             if (isVideo) PinToItself(song);
@@ -424,7 +425,8 @@ public partial class InnerTubeMusicProvider
                 Artists = ArtistsWithoutType(card.Subtitle),
                 ThumbnailUrl = thumbnail,
                 VideoType = type,
-                ViewCount = ParseViewCount(card.Subtitle)
+                ViewCount = ParseViewCount(card.Subtitle),
+                CountsPlays = CountWord(card.Subtitle)
             };
             if (isVideo) PinToItself(song);
             return new ShelfItem

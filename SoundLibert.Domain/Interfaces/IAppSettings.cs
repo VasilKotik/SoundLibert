@@ -7,7 +7,7 @@ namespace SoundLibert.Domain.Interfaces;
 /// audio preferences here (instead of a second service) avoids duplicate
 /// settings stores. Implementations save on change and expose <see cref="Save"/>.
 /// </summary>
-public interface IAppSettings
+public interface IAppSettings : IAiMusicSettings
 {
     // ---- Playback ----
     double Volume { get; set; }
@@ -39,6 +39,7 @@ public interface IAppSettings
 
     /// <summary>Calms the interface: no moving background, no page and card motion.</summary>
     bool ReduceMotion { get; set; }
+
 
     /// <summary>
     /// Preferred Video-mode resolution as a target height in pixels

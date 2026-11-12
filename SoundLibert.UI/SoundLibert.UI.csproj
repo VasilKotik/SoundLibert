@@ -55,6 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SoundLibert.Shared\SoundLibert.Shared.csproj" />
     <ProjectReference Include="..\SoundLibert.App\SoundLibert.App.csproj" />
     <ProjectReference Include="..\SoundLibert.Audio\SoundLibert.Audio.csproj" />
     <ProjectReference Include="..\SoundLibert.Domain\SoundLibert.Domain.csproj" />

@@ -24,6 +24,10 @@ internal sealed class DownloadService : IDownloadService
     private readonly ConcurrentDictionary<string, DownloadState> _states = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _paths = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, double> _progress = new(StringComparer.Ordinal);
+
+    /// <summary>Which id holds the copy of a song (<see cref="SongIdentity.Key(SongItem)"/>), and back.</summary>
+    private readonly ConcurrentDictionary<string, string> _copyBySong = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string> _songOfCopy = new(StringComparer.Ordinal);
     // Ids queued or in progress, and how to stop the one in progress.
     private readonly ConcurrentDictionary<string, CancellationTokenSource?> _active = new(StringComparer.Ordinal);
     private int _initialized;
@@ -140,6 +144,7 @@ internal sealed class DownloadService : IDownloadService
                 {
                     _paths[e.Id] = e.DownloadPath!;
                     _states[e.Id] = DownloadState.Downloaded;
+                    RememberSong(e.Id, SongIdentity.Key(e.ToSongItem()));
                 }
         }
         catch (Exception ex)
@@ -168,11 +173,36 @@ internal sealed class DownloadService : IDownloadService
         return false;
     }
 
+    public string? CopyOf(SongItem song)
+    {
+        if (song is null || song.IsLocal || string.IsNullOrWhiteSpace(song.Id)) return null;
+        if (IsDownloaded(song.Id)) return song.Id;
+        foreach (var version in new[] { song.SongVersionId, song.VideoVersionId })
+            if (!string.IsNullOrWhiteSpace(version) && IsDownloaded(version)) return version;
+        var key = SongIdentity.Key(song);
+        return key.Length > 0 && _copyBySong.TryGetValue(key, out var id) && IsDownloaded(id) ? id : null;
+    }
+
+    private void RememberSong(string id, string key)
+    {
+        if (key.Length == 0) return;
+        _copyBySong[key] = id;
+        _songOfCopy[id] = key;
+    }
+
+    private void ForgetSong(string id)
+    {
+        if (_songOfCopy.TryRemove(id, out var key))
+            _copyBySong.TryRemove(new KeyValuePair<string, string>(key, id));
+    }
+
     public async Task DownloadAsync(SongItem song, CancellationToken ct = default)
     {
         if (song is null || string.IsNullOrWhiteSpace(song.Id)) return;
         if (song.IsLocal) return;                 // already a local file
-        if (IsDownloaded(song.Id)) return;
+        // Already kept, maybe under another version's id: a second copy (the
+        // clip's sound, from an album page) would only take space.
+        if (CopyOf(song) != null) return;
         if (!_active.TryAdd(song.Id, null)) return;
 
         _states[song.Id] = DownloadState.Queued;
@@ -190,6 +220,7 @@ internal sealed class DownloadService : IDownloadService
 
         if (_paths.TryRemove(songId, out var path))
             DeleteOrRetryLater(path);
+        ForgetSong(songId);
         try { await _database.ClearDownloadAsync(songId, ct); }
         catch (Exception ex) { Trace.WriteLine($"[Download] clear failed: {ex.Message}"); }
 
@@ -331,6 +362,7 @@ internal sealed class DownloadService : IDownloadService
         await _database.SetDownloadAsync(song.Id, finalPath, DateTime.UtcNow, ct);
 
         _paths[song.Id] = finalPath;
+        RememberSong(song.Id, SongIdentity.Key(song));
         _states[song.Id] = DownloadState.Downloaded;
         _progress[song.Id] = 1;
         Raise(song.Id, DownloadState.Downloaded, 1, finalPath);

@@ -95,17 +95,38 @@ public class SongItem : YTItem, INotifyPropertyChanged
     /// <summary>True when a global view count is known for this row.</summary>
     public bool HasViewCount => _viewCount > 0;
 
-    /// <summary>"1.2B views", or "7B plays" for an audio track; empty while unknown.</summary>
+    /// <summary>
+    /// "252M plays" for a song, "1.2B views" for a video; empty while unknown. YouTube
+    /// Music's own word when the row came with one (it says plays for a song even when the
+    /// row carries its clip's id, as album pages do); otherwise a clip counts views and
+    /// everything else plays. Before, a song whose kind was unknown (Recently played,
+    /// radio) read "views" and the same song read "plays" elsewhere.
+    /// </summary>
     public string ViewCountText
     {
         get
         {
             if (_viewCount <= 0) return string.Empty;
-            return string.Equals(VideoType, "MUSIC_VIDEO_TYPE_ATV", StringComparison.OrdinalIgnoreCase)
+            return CountsPlays ?? !IsVideoClip
                 ? ViewCountFormatting.FormatPlays(_viewCount)
                 : ViewCountFormatting.FormatViews(_viewCount);
         }
     }
+
+    /// <summary>YouTube Music's word for the count on this row: plays (true), views (false), none given (null).</summary>
+    public bool? CountsPlays { get; set; }
+
+    /// <summary>
+    /// A track of an album's own page: a song, even when YouTube lists the music
+    /// video's id for it (the page plays it as the song; see <see cref="IsVideoClip"/>).
+    /// </summary>
+    public bool IsAlbumTrack { get; set; }
+
+    /// <summary>The album's own artist was given to this track (its row named nobody).</summary>
+    public bool InheritsAlbumArtist { get; set; }
+
+    /// <summary>The line under the title on the album's page: only artists other than the album's own.</summary>
+    public string AlbumPageArtist => InheritsAlbumArtist ? string.Empty : ArtistDisplay;
 
     /// <summary>
     /// Official song version (ATV audio track) id from YouTube Music. Used by the
@@ -150,6 +171,7 @@ public class SongItem : YTItem, INotifyPropertyChanged
     {
         get
         {
+            if (IsAlbumTrack) return false;
             if (!string.IsNullOrWhiteSpace(VideoType))
                 return VideoType.StartsWith("MUSIC_VIDEO_TYPE_OMV", StringComparison.OrdinalIgnoreCase)
                     || VideoType.StartsWith("MUSIC_VIDEO_TYPE_UGC", StringComparison.OrdinalIgnoreCase);
@@ -160,6 +182,12 @@ public class SongItem : YTItem, INotifyPropertyChanged
     }
 
     public string ArtistDisplay => string.Join(", ", Artists.Select(a => a.Name));
+
+    // SongIdentity.Key, kept with the title and artists it was made from: every
+    // list asks it again on each like and each new track.
+    internal string? IdentityKey;
+    internal string? IdentityKeyTitle;
+    internal object? IdentityKeyArtists;
     // "m:ss" alone wrapped at an hour (a 2:05:00 mix read "5:00").
     public string DurationDisplay => DurationSeconds <= 0
         ? "--:--"

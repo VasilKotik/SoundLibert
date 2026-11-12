@@ -37,6 +37,21 @@ not affiliated with Apple.
 Timed lyrics are read from YouTube Music, where they are provided by its lyrics
 partners (e.g. LyricFind); they belong to their respective rights holders.
 
+### spotify-ai-blocker (CennoxX) — https://github.com/CennoxX/spotify-ai-blocker
+The "Don't recommend AI-generated music" setting reads this project's community
+list of AI-generated artists (`SpotifyAiArtists.csv`; the project is MIT),
+downloaded once a day and kept on the device; only the names are used. As its
+README states, the list draws on:
+
+- [loved.music AI Artists](https://github.com/gounetmusic/loved-music-ai-artists) — CC BY 4.0;
+- [Zoundhub](https://github.com/xoundbyte/zoundhub) (formerly Soul Over AI) — CC BY 4.0;
+- [Spotify AI Blocklist](https://github.com/eye-wave/spotify-ai-blocklist) — GPL-3.0.
+
+SoundLibert matches the names against what is recommended (Home, charts, radio,
+"you might also like"); search, albums, playlists and the library stay whole. A
+few names on the list that also belong to real artists are never matched by the
+list alone, and the listener's own word ("AI artist" / "Not AI" in a menu) wins.
+
 ## Libraries
 
 | Library | License | Use |

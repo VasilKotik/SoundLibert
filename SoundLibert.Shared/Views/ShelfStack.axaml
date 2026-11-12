@@ -1,0 +1,239 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoundLibert.UI.ViewModels"
+             xmlns:views="using:SoundLibert.UI.Views"
+             xmlns:controls="using:SoundLibert.UI.Controls"
+             x:Class="SoundLibert.UI.Views.ShelfStack">
+
+    <UserControl.Styles>
+        <!-- Over a moving picture (the full player) every shelf sits on glass. -->
+        <Style Selector="views|ShelfStack.glass Border.shelfBox">
+            <Setter Property="Background" Value="#1AFFFFFF"/>
+            <Setter Property="BorderBrush" Value="#1FFFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource RadiusXl}"/>
+            <Setter Property="Padding" Value="26,22"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+    </UserControl.Styles>
+
+    <UserControl.Resources>
+        <!-- The head of every shelf. -->
+        <DataTemplate x:Key="ShelfHead" x:DataType="vm:ShelfVm">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="3" VerticalAlignment="Center">
+                    <TextBlock Classes="eyebrow" Text="{Binding Eyebrow}" IsVisible="{Binding HasEyebrow}"/>
+                    <TextBlock Classes="section-title" Text="{Binding Title}" IsVisible="{Binding HasTitle}"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="quiet" Content="Show all" Margin="0,0,-14,0"
+                        VerticalAlignment="Bottom" Tag="{Binding}" IsVisible="{Binding HasShowAll}"
+                        Click="ShowAll_Click"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- A cover. -->
+        <DataTemplate x:Key="CoverTemplate" x:DataType="vm:ShelfCard">
+            <controls:CoverCard Width="{Binding CardWidth}" Shape="{Binding Shape}"
+                                Title="{Binding Title}" Subtitle="{Binding Subtitle}"
+                                ImageUrl="{Binding ThumbnailUrl}" CanPlay="{Binding CanPlay}"
+                                Tag="{Binding}" Tapped="Card_Tapped" PlayClick="CardPlay_Click"/>
+        </DataTemplate>
+
+        <!-- A video picture. -->
+        <DataTemplate x:Key="VideoTemplate" x:DataType="vm:ShelfCard">
+            <controls:CoverCard Width="272" Shape="Wide"
+                                Title="{Binding Title}" Subtitle="{Binding Subtitle}"
+                                ImageUrl="{Binding ThumbnailUrl}" Badge="{Binding Badge}"
+                                Tag="{Binding}" Tapped="Card_Tapped" PlayClick="CardPlay_Click"/>
+        </DataTemplate>
+
+        <!-- A compact row: a song, or a place on a chart. -->
+        <DataTemplate x:Key="RowTemplate" x:DataType="vm:ShelfCard">
+            <Border Classes="row" Width="{x:Static controls:PageLayout.ShelfRowWidth}" Height="62" Padding="6" Tag="{Binding}" Tapped="Card_Tapped">
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                    <!-- Its place on the chart and where it is heading. -->
+                    <StackPanel Width="26" Margin="0,0,11,0" VerticalAlignment="Center" Spacing="1" IsVisible="{Binding HasRank}">
+                        <TextBlock Text="{Binding RankText}" FontSize="15" FontWeight="Bold"
+                                   HorizontalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                        <controls:Icon Kind="ArrowUp" Size="11" Foreground="#4ADE80"
+                                       HorizontalAlignment="Center" IsVisible="{Binding TrendsUp}"/>
+                        <controls:Icon Kind="ArrowDown" Size="11" Foreground="#F87171"
+                                       HorizontalAlignment="Center" IsVisible="{Binding TrendsDown}"/>
+                    </StackPanel>
+                    <Border Grid.Column="1" Classes="thumb" Width="48" Height="48" Margin="0,0,11,0" CornerRadius="{Binding ThumbRadius}">
+                        <Panel>
+                            <controls:RemoteImage Url="{Binding ThumbnailUrl}" Stretch="UniformToFill"/>
+                            <Border Classes="thumbShade hoverOnly">
+                                <controls:Icon Kind="Play" Size="18" Foreground="#FFFFFF"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Classes="rowTitle" Text="{Binding Title}"/>
+                        <TextBlock Classes="rowSub" Text="{Binding Subtitle}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- A mood or genre. -->
+        <DataTemplate x:Key="TileTemplate" x:DataType="vm:MoodTileVm">
+            <Border Classes="moodTile" Background="{Binding Background}" Tag="{Binding}" Tapped="Tile_Tapped"
+                    controls:Motion.RevealOnLoad="True">
+                <Panel>
+                    <!-- A record half out of the corner. It turns under the pointer. -->
+                    <Panel Classes="tileRecord" Width="120" Height="120" Margin="0,-34,-34,0"
+                           HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <Ellipse Fill="#29000000"/>
+                        <Ellipse>
+                            <Ellipse.Fill>
+                                <ConicGradientBrush>
+                                    <GradientStop Offset="0" Color="#00FFFFFF"/>
+                                    <GradientStop Offset="0.1" Color="#2BFFFFFF"/>
+                                    <GradientStop Offset="0.2" Color="#00FFFFFF"/>
+                                    <GradientStop Offset="0.5" Color="#00FFFFFF"/>
+                                    <GradientStop Offset="0.6" Color="#2BFFFFFF"/>
+                                    <GradientStop Offset="0.7" Color="#00FFFFFF"/>
+                                </ConicGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Ellipse Width="92" Height="92" Stroke="#14FFFFFF" StrokeThickness="1"/>
+                        <Ellipse Width="66" Height="66" Stroke="#14FFFFFF" StrokeThickness="1"/>
+                        <Ellipse Width="36" Height="36" Fill="#3DFFFFFF"/>
+                        <Ellipse Width="8" Height="8" Fill="#73000000"/>
+                    </Panel>
+                    <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF"
+                               VerticalAlignment="Bottom" Margin="14,0,10,12" TextWrapping="Wrap" MaxLines="2"
+                               TextTrimming="CharacterEllipsis"/>
+                </Panel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ItemsControl x:Name="Stack">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel Spacing="34"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <!-- A long page holds a shelf only near the screen. The slot finds the template below. -->
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <controls:ShelfSlot/>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+        <ItemsControl.DataTemplates>
+            <DataTemplate DataType="vm:CardShelfVm" x:DataType="vm:CardShelfVm">
+                <Border Classes="shelfBox">
+                    <StackPanel Spacing="14">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShelfHead}"/>
+                        <controls:Rail Bleed="{Binding $parent[views:ShelfStack].RailBleed}" NearEnd="Rail_NearEnd">
+                            <ItemsControl ItemsSource="{Binding Shown}" ItemTemplate="{StaticResource CoverTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="18"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </controls:Rail>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate DataType="vm:VideoShelfVm" x:DataType="vm:VideoShelfVm">
+                <Border Classes="shelfBox">
+                    <StackPanel Spacing="14">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShelfHead}"/>
+                        <controls:Rail Bleed="{Binding $parent[views:ShelfStack].RailBleed}" NearEnd="Rail_NearEnd">
+                            <ItemsControl ItemsSource="{Binding Shown}" ItemTemplate="{StaticResource VideoTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="18"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </controls:Rail>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate DataType="vm:RowShelfVm" x:DataType="vm:RowShelfVm">
+                <Border Classes="shelfBox">
+                    <StackPanel Spacing="12">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShelfHead}"/>
+                        <controls:Rail Bleed="{Binding $parent[views:ShelfStack].RailBleed}" NearEnd="Rail_NearEnd">
+                            <ItemsControl ItemsSource="{Binding Shown}" Margin="-6,0,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding}" ItemTemplate="{StaticResource RowTemplate}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </controls:Rail>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate DataType="vm:GridShelfVm" x:DataType="vm:GridShelfVm">
+                <StackPanel Spacing="14">
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShelfHead}"/>
+                    <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <controls:AdaptiveGrid MinItemWidth="160"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ShelfCard">
+                                <controls:CoverCard Shape="{Binding Shape}" Title="{Binding Title}"
+                                                    Subtitle="{Binding Subtitle}" ImageUrl="{Binding ThumbnailUrl}"
+                                                    CanPlay="{Binding CanPlay}" Tag="{Binding}"
+                                                    Tapped="Card_Tapped" PlayClick="CardPlay_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </DataTemplate>
+
+            <DataTemplate DataType="vm:TileRailVm" x:DataType="vm:TileRailVm">
+                <StackPanel Spacing="14">
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShelfHead}"/>
+                    <controls:Rail Bleed="{Binding $parent[views:ShelfStack].RailBleed}" NearEnd="Rail_NearEnd">
+                        <ItemsControl ItemsSource="{Binding Shown}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="12"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MoodTileVm">
+                                    <ContentControl Width="176" Content="{Binding}" ContentTemplate="{StaticResource TileTemplate}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </controls:Rail>
+                </StackPanel>
+            </DataTemplate>
+
+            <DataTemplate DataType="vm:TileGridVm" x:DataType="vm:TileGridVm">
+                <StackPanel Spacing="14">
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShelfHead}"/>
+                    <ItemsControl ItemsSource="{Binding Tiles}" ItemTemplate="{StaticResource TileTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <controls:AdaptiveGrid MinItemWidth="170" ColumnGap="12" RowGap="12"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </StackPanel>
+            </DataTemplate>
+        </ItemsControl.DataTemplates>
+    </ItemsControl>
+</UserControl>

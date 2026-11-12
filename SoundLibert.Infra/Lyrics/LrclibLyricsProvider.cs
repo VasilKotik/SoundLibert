@@ -55,7 +55,7 @@ public sealed class LrclibLyricsProvider : ILyricsProvider
         var via = "none";
         try
         {
-            var tracks = await SearchAsync(title, artist ?? string.Empty, album, ct);
+            var tracks = await SearchAsync(title, artist ?? string.Empty, album, ct).ConfigureAwait(false);
             var effectiveTitle = CleanVideoTitle(title);
             (best, via) = PickBest(tracks ?? new(), durationSeconds, effectiveTitle, artist ?? string.Empty);
 
@@ -65,7 +65,7 @@ public sealed class LrclibLyricsProvider : ILyricsProvider
                 !string.Equals(effectiveTitle, title, StringComparison.Ordinal))
             {
                 Trace.WriteLine($"[Lyrics] LRCLIB retry with cleaned title: \"{effectiveTitle}\"");
-                var cleanedTracks = await SearchAsync(effectiveTitle, artist ?? string.Empty, album, ct);
+                var cleanedTracks = await SearchAsync(effectiveTitle, artist ?? string.Empty, album, ct).ConfigureAwait(false);
                 if (cleanedTracks != null)
                 {
                     tracks ??= new();
@@ -78,7 +78,7 @@ public sealed class LrclibLyricsProvider : ILyricsProvider
             // only the existing search filter; keep the duration/identity gate.
             if ((best == null || via == "plain") && !string.IsNullOrWhiteSpace(album))
             {
-                var albumlessTracks = await SearchAsync(effectiveTitle, artist ?? string.Empty, null, ct);
+                var albumlessTracks = await SearchAsync(effectiveTitle, artist ?? string.Empty, null, ct).ConfigureAwait(false);
                 if (albumlessTracks != null)
                 {
                     tracks ??= new();
@@ -94,7 +94,7 @@ public sealed class LrclibLyricsProvider : ILyricsProvider
                 && !string.IsNullOrWhiteSpace(artist))
             {
                 Trace.WriteLine("[Lyrics] LRCLIB retry without artist filter; retaining identity/duration checks");
-                var titleTracks = await SearchAsync(effectiveTitle, string.Empty, null, ct);
+                var titleTracks = await SearchAsync(effectiveTitle, string.Empty, null, ct).ConfigureAwait(false);
                 if (titleTracks != null)
                 {
                     tracks ??= new();
@@ -144,7 +144,7 @@ public sealed class LrclibLyricsProvider : ILyricsProvider
 
         for (var attempt = 0; ; attempt++)
         {
-            using var response = await _http.GetAsync(url, ct);
+            using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 Trace.WriteLine($"[Lyrics] LRCLIB query failed: {(int)response.StatusCode}");
@@ -156,14 +156,14 @@ public sealed class LrclibLyricsProvider : ILyricsProvider
                     // Respect the server's backoff. A longer outage should keep
                     // cached words rather than hold the lyrics load indefinitely.
                     if (wait > TimeSpan.FromSeconds(5)) response.EnsureSuccessStatusCode();
-                    if (wait > TimeSpan.Zero) await Task.Delay(wait, ct);
+                    if (wait > TimeSpan.Zero) await Task.Delay(wait, ct).ConfigureAwait(false);
                     // One retry after the server's backoff: before, the wait was
                     // honoured but the query was dropped → "No lyrics found".
                     if (attempt == 0) continue;
                 }
                 return null;
             }
-            return await response.Content.ReadFromJsonAsync<List<LrcTrack>>(JsonOptions, ct);
+            return await response.Content.ReadFromJsonAsync<List<LrcTrack>>(JsonOptions, ct).ConfigureAwait(false);
         }
     }
 

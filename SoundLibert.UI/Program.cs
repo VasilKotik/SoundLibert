@@ -92,11 +92,16 @@ class Program
         SoundLibert.UI.Services.StartupClock.Mark("log");
         var services = new ServiceCollection();
         services.AddSoundLibert();
+        // Windows plays through NAudio (Media Foundation decodes, WaveOut plays).
+        services.AddSingleton<IAudioPlayer, SoundLibert.Audio.NAudioPlayer>();
+        services.AddSingleton<IMediaProbe, SoundLibert.Audio.MediaFoundationProbe>();
         services.AddSingleton<SoundLibert.UI.Services.ArtworkService>();
         services.AddSingleton<SoundLibert.UI.Services.UpdateService>();
         services.AddSingleton<MainWindowViewModel>();
 
         App.ServiceProvider = services.BuildServiceProvider();
+        SoundLibert.UI.Services.AppServices.Provider = App.ServiceProvider;
+        SoundLibert.UI.Services.AppServices.Shell = new SoundLibert.UI.Services.DesktopShell();
 
         // Database + account init run before Avalonia has a synchronization
         // context, so blocking here cannot deadlock (continuations go to the

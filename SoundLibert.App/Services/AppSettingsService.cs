@@ -52,6 +52,18 @@ internal sealed class AppSettingsService : IAppSettings, IAudioSettings
         set { _data.CrossfadeSeconds = value; ApplyCrossfade(); Touch(); }
     }
     public bool ShuffleOnByDefault { get => _data.ShuffleOnByDefault; set { _data.ShuffleOnByDefault = value; Touch(); } }
+
+    public bool HideAiMusic { get => _data.HideAiMusic; set { _data.HideAiMusic = value; Touch(); } }
+
+    public IReadOnlyDictionary<string, bool> AiArtistMarks => _data.AiArtistMarks ??= new();
+
+    public void SetAiArtistMark(string normalizedName, bool? isAi)
+    {
+        var marks = _data.AiArtistMarks ??= new();
+        if (isAi is { } value) marks[normalizedName] = value;
+        else marks.Remove(normalizedName);
+        Touch();
+    }
     public string RepeatMode { get => _data.RepeatMode; set { _data.RepeatMode = value; Touch(); } }
 
     // ---- General ----
@@ -175,6 +187,8 @@ internal sealed class AppSettingsService : IAppSettings, IAudioSettings
         public double CrossfadeSeconds { get; set; } = 6;
         public bool ShuffleOnByDefault { get; set; }
         public string RepeatMode { get; set; } = "Off";
+        public bool HideAiMusic { get; set; } = true;
+        public Dictionary<string, bool>? AiArtistMarks { get; set; }
 
         public bool MinimizeToTray { get; set; }
         public bool CloseToTray { get; set; }
