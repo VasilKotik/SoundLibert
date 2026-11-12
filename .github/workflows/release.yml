@@ -1,10 +1,14 @@
 name: Release
 
-# Builds a release on GitHub's servers from this repository and leaves it as a
-# DRAFT release with all its files. Open it on the Releases page, check it, and
-# press Publish: installed apps only see published releases.
+# Builds a release on GitHub's servers from this repository.
+# - Pushing a tag "vX.Y.Z" builds that version and PUBLISHES it: installed apps
+#   see it at their next check.
+# - Running it by hand (Actions > Release > Run workflow) leaves a DRAFT release
+#   with all its files, to check and publish on the Releases page.
 # Release notes come from docs/release-notes/<version>.md.
 on:
+  push:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
@@ -19,7 +23,7 @@ jobs:
   release:
     runs-on: windows-latest
     env:
-      VERSION: ${{ inputs.version }}
+      INPUT_VERSION: ${{ inputs.version }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
@@ -28,11 +32,14 @@ jobs:
           dotnet-version: 10.0.x
       - name: Test, publish and pack
         shell: powershell
-        run: ./release.ps1 -Version $env:VERSION
-      - name: Upload as a draft release
+        run: |
+          $version = if ($env:INPUT_VERSION) { $env:INPUT_VERSION } else { $env:GITHUB_REF_NAME.TrimStart('v') }
+          ./release.ps1 -Version $version
+      - name: Upload the release
         shell: powershell
-        run: >
-          dotnet vpk upload github --repoUrl "https://github.com/$env:GITHUB_REPOSITORY"
-          --token $env:GITHUB_TOKEN -o dist/releases
-          --releaseName "SoundLibert $env:VERSION" --tag "v$env:VERSION"
-          --targetCommitish $env:GITHUB_SHA
+        run: |
+          $version = if ($env:INPUT_VERSION) { $env:INPUT_VERSION } else { $env:GITHUB_REF_NAME.TrimStart('v') }
+          $publish = @()
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $publish = @('--publish') }
+          dotnet vpk upload github --repoUrl "https://github.com/$env:GITHUB_REPOSITORY" --token $env:GITHUB_TOKEN -o dist/releases --releaseName "SoundLibert $version" --tag "v$version" --targetCommitish $env:GITHUB_SHA @publish
+          if ($LASTEXITCODE -ne 0) { throw "vpk upload failed ($LASTEXITCODE)" }

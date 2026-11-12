@@ -19,7 +19,7 @@ namespace SoundLibert.Infra.SQLite;
 /// </summary>
 public sealed class SqliteMusicDatabase : IMusicDatabase
 {
-    private const int SchemaVersion = 22;
+    private const int SchemaVersion = 23;
 
     private readonly string _connectionString;
     private readonly SemaphoreSlim _initLock = new(1, 1);
@@ -562,6 +562,25 @@ public sealed class SqliteMusicDatabase : IMusicDatabase
                 var clearedMiss22 = await clearClipMiss22.ExecuteNonQueryAsync(ct);
                 if (clearedMiss22 > 0)
                     System.Diagnostics.Trace.WriteLine($"[Database] Cleared {clearedMiss22} clip-miss records (v22)");
+            }
+
+            if (previousSchemaVersion < 23)
+            {
+                // The clip search was rebuilt (InnerTubeMusicProvider.Clips.cs): fan
+                // channels named after the artist ("Imagine Dragons Fan") passed as the
+                // artist's own, a 19-second teaser passed when the song's length was
+                // unknown, and label-hosted clips (Atlantic Records) were missed. Every
+                // guessed clip and every "no clip" answer is found again with the new
+                // rules. Self-pins (a clip played as its own video) stay.
+                await using var reset23 = conn.CreateCommand();
+                reset23.CommandText = """
+                    UPDATE songs
+                       SET SongVersionId=NULL, VideoVersionId=NULL
+                     WHERE VideoVersionId IS NOT NULL AND VideoVersionId != Id;
+                    UPDATE songs SET ClipMissAt = NULL WHERE ClipMissAt IS NOT NULL;
+                    """;
+                var reset = await reset23.ExecuteNonQueryAsync(ct);
+                System.Diagnostics.Trace.WriteLine($"[Database] Cleared {reset} clip choices for the new clip search (v23)");
             }
 
             var hadLikeSourceColumns = existingColumns.Contains("IsYouTubeLiked") ||

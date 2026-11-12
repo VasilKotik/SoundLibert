@@ -1548,6 +1548,10 @@ public partial class MainWindowViewModel : ViewModelBase
             // "no clip" stamp (Canvas missing from search/home, present from
             // the album).
             var knownClip = await _musicDatabase.FindKnownClipForSongAsync(track.Id);
+            // Played once as a video does not make a clip fit for the background
+            // (a lyric video, a fan's upload): it must pass the same check first.
+            if (!string.IsNullOrEmpty(knownClip) && !await KnownClipFitsAsync(track, knownClip))
+                knownClip = null;
             if (!string.IsNullOrEmpty(knownClip))
             {
                 track.SongVersionId ??= track.Id;
@@ -1594,6 +1598,26 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Whether a clip known from an album or artist row may stand behind the song.
+    /// Could-not-check counts as yes: the next background check heals it.
+    /// </summary>
+    private async Task<bool> KnownClipFitsAsync(SongItem track, string clipId)
+    {
+        if (string.Equals(clipId, track.Id, StringComparison.Ordinal)) return true;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var row = await _musicDatabase.GetSongAsync(clipId, cts.Token);
+            return await _musicProvider.VerifyKnownClipAsync(track, clipId, row?.VideoType, cts.Token);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[Versions] known-clip check failed: {ex.Message}");
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Stores the versions, then the negative-cache stamp, in that order: the
     /// stamp only updates an existing row. Never blocks playback.
     /// </summary>
@@ -1634,15 +1658,8 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
         if (ok) return;
-        // YouTube itself paired this clip with the song (album/artist row whose
-        // id is the clip): trust it even when the title heuristics say "lyric
-        // video". Dropping it made the Canvas/toggle flicker between plays.
-        try
-        {
-            if (string.Equals(await _musicDatabase.FindKnownClipForSongAsync(track.Id), videoId, StringComparison.Ordinal))
-                return;
-        }
-        catch { /* fall through to the normal drop */ }
+        // A clip known from a video row is checked before it is used (see
+        // PrimeTrackVersionsAsync), so it cannot come back and flicker.
         System.Diagnostics.Trace.WriteLine($"[Versions] dropping stale pin {track.Id} -> {videoId}");
         try { await _musicDatabase.ClearVersionPinsAsync(track.Id); }
         catch (Exception ex)

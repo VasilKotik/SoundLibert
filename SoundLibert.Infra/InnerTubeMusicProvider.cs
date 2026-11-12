@@ -1364,12 +1364,11 @@ public partial class InnerTubeMusicProvider : IMusicProvider
     }
 
     /// <summary>
-    /// Resolves the two official YouTube Music versions of a track — the song
-    /// (ATV audio track) and the music video (OMV). The counterpart is looked up
-    /// in YouTube Music's own catalogue (search) and a candidate is accepted only
-    /// when YouTube tags it as an official music video
-    /// (<c>MUSIC_VIDEO_TYPE_OMV</c>) and its stream is playable — never a random
-    /// upload. Results are cached per song id.
+    /// Resolves the two versions of a track: the song (ATV audio track) and its
+    /// music video. The video is found by <see cref="FindClipAsync"/>, which accepts
+    /// only uploads that pass a check of their own player data: the artist's or a
+    /// vouched-for label's channel, never a fan's; a wide frame of a plausible
+    /// length; a real clip title. Results are cached per song id.
     /// </summary>
     public async Task<TrackVersions?> GetTrackVersionsAsync(SongItem song, CancellationToken ct = default)
     {
@@ -1420,17 +1419,12 @@ public partial class InnerTubeMusicProvider : IMusicProvider
             }
             else
             {
-                // Priority, most-official first: the artist's own channel (real
-                // clip), then the scored global search. ONLY a genuine music
-                // video is accepted — official non-clip uploads (lyric/audio/
-                // visualiser/live) have no video stream, so they used to stall
-                // the Canvas/Video player and pollute the "Music videos" shelf.
-                var channelClip = await FindChannelClipAsync(song, ct);
+                // The clip: from the artist's page and the Videos searches, checked
+                // one by one against its own player data (InnerTubeMusicProvider.Clips.cs).
                 versions = new TrackVersions
                 {
                     SongId = videoId,
-                    VideoId = channelClip
-                        ?? await FindOfficialMusicVideoIdAsync(videoCandidates, song, ct),
+                    VideoId = await FindClipAsync(song, videoCandidates, ct),
                     CurrentIsVideo = false
                 };
             }
@@ -1482,74 +1476,6 @@ public partial class InnerTubeMusicProvider : IMusicProvider
     /// <summary>True for Opus-in-WebM adaptive formats (reliably decodable here).</summary>
     private static bool IsOpusAudio(string? mimeType)
         => mimeType?.Contains("opus", StringComparison.OrdinalIgnoreCase) == true;
-
-    /// <summary>
-    /// Picks the best official music video (OMV) from the gathered candidates.
-    /// Only candidates tagged <c>MUSIC_VIDEO_TYPE_OMV</c> (and not a lyric /
-    /// visualiser upload) are considered — and the top picks are DEEP-VERIFIED
-    /// with a metadata player request (title + author + duration) before one is
-    /// accepted. A search tag alone is not trustworthy: labels mistag uploads
-    /// and same-titled songs from other artists pass the title gate, which
-    /// used to pin random videos that then played "a different song". A pick
-    /// that fails verification is skipped; honest null beats a random clip.
-    /// The id is returned immediately — the stream is resolved (and validated)
-    /// later, only when the video is actually needed.
-    /// </summary>
-    private async Task<string?> FindOfficialMusicVideoIdAsync(
-        List<SongItem> candidates, SongItem song, CancellationToken ct)
-    {
-        var ranked = candidates
-            .Where(c => c.Id != song.Id
-                        && c.VideoType == "MUSIC_VIDEO_TYPE_OMV"
-                        && ClipTitleRules.IsRealMusicVideoTitle(c.Title, song.Title))
-            .Select(c => (Candidate: c, Score: ScoreCandidate(song, c, preferVideo: true)))
-            .Where(x => x.Score > 0)
-            .OrderByDescending(x => x.Score)
-            .Take(3)
-            .ToList();
-
-        foreach (var (candidate, score) in ranked)
-        {
-            if (await VerifyCounterpartAsync(song, candidate, ct))
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Versions] OMV for \"{song.Title}\": \"{candidate.Title}\" ({candidate.Id}, score {score})");
-                return candidate.Id;
-            }
-        }
-
-        if (ranked.Count > 0)
-            System.Diagnostics.Debug.WriteLine($"[Versions] no verifiable OMV for \"{song.Title}\" ({ranked.Count} rejected)");
-
-        // Tags are sometimes absent from search rows: try the best untagged
-        // rows through the same verification — it, not the tag, is the real
-        // guard against randoms now. UGC uploads ride along too (small artists
-        // often host the real clip as a plain upload), but with a strict
-        // channel check: row attribution alone would pass fan covers.
-        var untagged = candidates
-            .Where(c => c.Id != song.Id
-                        && (string.IsNullOrEmpty(c.VideoType)
-                            || c.VideoType == "MUSIC_VIDEO_TYPE_UGC")
-                        && ClipTitleRules.IsRealMusicVideoTitle(c.Title, song.Title))
-            .Select(c => (Candidate: c, Score: ScoreCandidate(song, c, preferVideo: true)))
-            .Where(x => x.Score > 0)
-            .OrderByDescending(x => x.Score)
-            .Take(3)
-            .ToList();
-
-        foreach (var (candidate, score) in untagged)
-        {
-            var strict = candidate.VideoType == "MUSIC_VIDEO_TYPE_UGC";
-            if (await VerifyCounterpartAsync(song, candidate, ct, strictAuthor: strict))
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Versions] untagged clip for \"{song.Title}\": \"{candidate.Title}\" ({candidate.Id}, score {score})");
-                return candidate.Id;
-            }
-        }
-
-        return null;
-    }
 
     /// <summary>
     /// Picks the matching song (ATV audio track, or an untagged row) so the
@@ -1710,11 +1636,18 @@ public partial class InnerTubeMusicProvider : IMusicProvider
     }
 
     /// <inheritdoc cref="IMusicProvider.VerifyVideoPinAsync" />
-    public Task<bool> VerifyVideoPinAsync(SongItem song, string videoId, CancellationToken ct = default)
+    public async Task<bool> VerifyVideoPinAsync(SongItem song, string videoId, CancellationToken ct = default)
     {
-        if (song is null || string.IsNullOrWhiteSpace(videoId)) return Task.FromResult(false);
-        var stub = new SongItem { Id = videoId };
-        return VerifyCounterpartAsync(song, stub, ct, checkArtist: false);
+        if (song is null || string.IsNullOrWhiteSpace(videoId)) return false;
+        // A clip played as its own video is its own pin.
+        if (string.Equals(song.Id, videoId, StringComparison.Ordinal)) return true;
+        var known = await KnowSongAsync(song, ct);
+        var response = await PlayerForCheckAsync(videoId, ct);
+        if (response == null) return true; // could not check: keep the pin
+        var check = JudgeClip(known, ArtistNamesOf(known), ArtistChannelsOf(known), videoId, rowType: null, pinned: true, response);
+        if (check.Verdict != ClipVerdict.Accept)
+            System.Diagnostics.Trace.WriteLine($"[Clip] saved clip {videoId} for \"{song.Title}\" fails: {check.Note}");
+        return check.Verdict == ClipVerdict.Accept;
     }
 
     /// <inheritdoc cref="ClipTitleRules.Norm"/>
@@ -1755,53 +1688,6 @@ public partial class InnerTubeMusicProvider : IMusicProvider
         var videos = Dedupe(v.Songs.Concat(o.Songs).Concat(l.Songs));
         var all = Dedupe(videos.Concat(s.Songs));
         return (all, videos, anyOk);
-    }
-
-    /// <summary>
-    /// Finds the song's video on the ARTIST'S OWN channel first. The channel
-    /// pool is channel-authoritative (everything there is the artist's own
-    /// upload), so no artist gate is needed. Two tiers, real clip preferred:
-    /// (A) a genuine music video, (B) any clean official upload — an
-    /// "Official Lyric Video" / "Official Audio" — only if no real clip exists.
-    /// </summary>
-    private async Task<string?> FindChannelClipAsync(SongItem song, CancellationToken ct)
-    {
-        var primary = song.Artists.FirstOrDefault()?.Name ?? song.ArtistDisplay.Split(',')[0].Trim();
-        if (string.IsNullOrWhiteSpace(primary)) return null;
-        if (NormName(CleanSearchTitle(song.Title)).Length == 0) return null;
-
-        List<SongItem> pool;
-        try
-        {
-            pool = await GetArtistChannelVideosAsync(song.Artists.FirstOrDefault()?.Id, primary, ct);
-        }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Trace.WriteLine($"[Versions] channel pool failed for \"{primary}\": {ex.Message}");
-            return null;
-        }
-
-        // Tier A: real clips from the artist's channel.
-        foreach (var v in pool.Where(v => ClipTitleRules.IsRealMusicVideoTitle(v.Title, song.Title)
-                                          && ClipTitleRules.TitlesMatch(song.Title, v.Title)))
-        {
-            if (string.Equals(v.Id, song.Id, StringComparison.Ordinal)) continue;
-            var stub = new SongItem { Id = v.Id };
-            if (await VerifyCounterpartAsync(song, stub, ct, checkArtist: false))
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Versions] channel clip for \"{song.Title}\": \"{v.Title}\" ({v.Id})");
-                return v.Id;
-            }
-        }
-
-        // Tier B (official non-clip lyric/audio/live uploads) was REMOVED: those
-        // have no video stream, so the Canvas/Video player stalled on them and
-        // they wrongly appeared under "Music videos". A song with no real music
-        // video now honestly gets no clip.
-
-        return null;
     }
 
     /// <summary>

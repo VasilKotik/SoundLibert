@@ -108,13 +108,20 @@ public interface IMusicProvider
     Task<TrackVersions?> GetTrackVersionsAsync(SongItem song, CancellationToken ct = default);
 
     /// <summary>
-    /// Re-checks a CACHED video pin (playable + title + duration — never the
-    /// artist gate, so label-hosted official clips cannot false-fail for lack
-    /// of the original search row). Transport failure keeps the pin (fail
-    /// open); only a positive mismatch returns false. Used for background
-    /// self-healing of stale pins.
+    /// Re-checks a saved clip with the rules a new one must pass: playable, names the
+    /// song, a real clip or official visualiser, not a fan's or a "Topic" channel, a
+    /// wide frame of a plausible length. A label's channel is not questioned again (it
+    /// was vouched for when the clip was chosen). Could-not-check keeps the pin; only
+    /// a failed check returns false. Used to heal saved clips in the background.
     /// </summary>
     Task<bool> VerifyVideoPinAsync(SongItem song, string videoId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Checks a clip known from a video row (played once as a video, paired with this
+    /// song) as strictly as a newly found one; <paramref name="videoType"/> is that
+    /// row's YouTube Music type (OMV, UGC). Could-not-check counts as fit.
+    /// </summary>
+    Task<bool> VerifyKnownClipAsync(SongItem song, string videoId, string? videoType, CancellationToken ct = default);
 
     /// <summary>
     /// Resolves a queue of songs for the given video ids or playlist id

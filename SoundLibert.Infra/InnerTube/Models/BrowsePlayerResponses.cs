@@ -349,6 +349,10 @@ public class VideoDetails
     [JsonPropertyName("author")]
     public string? Author { get; set; }
 
+    /// <summary>The uploading channel ("UC…"): an artist's page has the same id as their own channel.</summary>
+    [JsonPropertyName("channelId")]
+    public string? ChannelId { get; set; }
+
     [JsonPropertyName("lengthSeconds")]
     public string? LengthSeconds { get; set; }
 
